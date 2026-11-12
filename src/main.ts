@@ -2,6 +2,7 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
+  ACESFilmicToneMapping,
   Color,
   DirectionalLight,
   Group,
@@ -26,25 +27,40 @@ const pageStatus = status;
 
 const settings = createSettings();
 const renderer = new WebGPURenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
 
 const scene = new Scene();
-const backdrop = new Color("#080808");
+const backdrop = new Color("#0d110f");
 scene.background = backdrop;
 
 function setBackdrop(tone: "black" | "gray"): void {
-  backdrop.set(tone === "gray" ? "#6a6a6a" : "#080808");
+  backdrop.set(tone === "gray" ? "#525752" : "#0d110f");
   document.body.style.background = `#${backdrop.getHexString()}`;
 }
-const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
-camera.position.set(0, 3, 3.5);
+const camera = new PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.01, 100);
+camera.position.set(2.0, 3.0, 6.5);
 const ortho = new OrthographicCamera(-2, 2, 2, -2, 0.01, 50);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.target.set(0, 0, 0);
+controls.target.set(0, -0.35, 0);
 controls.autoRotate = false;
+
+function fitCamera(): void {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.fov = camera.aspect < 0.75 ? 62 : 42;
+  camera.updateProjectionMatrix();
+}
+fitCamera();
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) settings.motionMode = "off";
+window.addEventListener("flower-reset-view", () => {
+  camera.position.set(2.0, 3.0, 6.5);
+  controls.target.set(0, -0.35, 0);
+  studyView = null;
+});
 
 type StudyView = "front" | "left" | "right" | "top" | "threeQuarter";
 type StudyCommand = StudyView | "home";
@@ -130,29 +146,13 @@ const flowerGroup = new Group();
 flowerGroup.add(flower.mesh);
 scene.add(flowerGroup);
 
-scene.add(new HemisphereLight(0xffffff, 0x9a9a9a, 1.6));
-const key = new DirectionalLight(0xffffff, 2.5);
+scene.add(new HemisphereLight(0xf4f6ee, 0x59645c, 1.8));
+const key = new DirectionalLight(0xfff5ec, 2.2);
 key.position.set(3, 5, 4);
-key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-key.shadow.camera.near = 0.1;
-key.shadow.camera.far = 20;
-key.shadow.camera.left = -6;
-key.shadow.camera.right = 6;
-key.shadow.camera.top = 6;
-key.shadow.camera.bottom = -6;
-key.shadow.bias = -1e-4;
-key.shadow.normalBias = 0.03;
 scene.add(key);
-const cool = new DirectionalLight(0xffffff, 0.45);
-cool.position.set(-4, 2, 1);
-scene.add(cool);
-const warm = new DirectionalLight(0xffffff, 1.15);
+const warm = new DirectionalLight(0xffe6ce, 0.8);
 warm.position.set(2, 3, -5);
 scene.add(warm);
-const overhead = new DirectionalLight(0xffffff, 1.5);
-overhead.position.set(0, 7, 0);
-scene.add(overhead);
 
 const panel = createPanel(settings, flower, setBackdrop);
 
@@ -160,34 +160,26 @@ let motionTime = 0;
 let last = performance.now();
 
 function applyMotion(mode: MotionMode, dt: number): void {
-  switch (mode) {
-    case "off":
-      controls.autoRotate = false;
-      flowerGroup.rotation.y = 0;
-      break;
-    case "bloom":
-      controls.autoRotate = false;
-      flowerGroup.rotation.y = 0;
-      motionTime += dt * 0.55;
-      const opened = Math.sin(motionTime) * 0.5 + 0.5;
-      settings.animation = opened * 10;
-      flower.syncUniforms();
-      panel.refresh();
-      break;
-    case "rotate":
-      controls.autoRotate = true;
-      flowerGroup.rotation.y = 0;
-      break;
-    case "sway":
-      controls.autoRotate = false;
-      motionTime += dt;
-      flowerGroup.rotation.y = Math.sin(motionTime * 0.65) * 0.42;
-      break;
-    default: {
-      const unreachable: never = mode;
-      throw new Error(unreachable);
-    }
+  controls.autoRotate = mode === "rotate";
+  if (mode !== "off") motionTime += dt * (mode === "bloom" ? 0.55 : 1);
+  flowerGroup.rotation.y = mode === "sway" ? Math.sin(motionTime * 0.52) * 0.12 : 0;
+  flowerGroup.rotation.z = mode === "sway" ? Math.sin(motionTime * 0.7) * 0.022 : 0;
+  flower.setSway(motionTime, mode === "sway" ? 1 : mode === "bloom" ? 0.22 : 0);
+  if (mode === "bloom") {
+    const opened = Math.sin(motionTime) * 0.5 + 0.5;
+    settings.animation = opened * 10;
+    flower.syncUniforms();
+    panel.refresh();
   }
+}
+
+let presented = false;
+const loading = document.querySelector<HTMLElement>("#loading");
+
+function showError(error: unknown): void {
+  if (loading) loading.hidden = true;
+  pageStatus.hidden = false;
+  pageStatus.textContent = error instanceof Error ? error.message : "The flower renderer could not start.";
 }
 
 function frame(now: number): void {
@@ -203,16 +195,19 @@ function frame(now: number): void {
       placeStudyView(studyView);
       renderer.render(scene, ortho);
     }
+    if (!presented) {
+      presented = true;
+      document.body.classList.add("is-ready");
+      if (loading) loading.hidden = true;
+    }
   } catch (error) {
     renderer.setAnimationLoop(null);
-    pageStatus.hidden = false;
-    pageStatus.textContent = error instanceof Error ? error.message : "Render failed";
+    showError(error);
   }
 }
 
 window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  fitCamera();
   fitOrtho();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
@@ -232,6 +227,5 @@ try {
   pmrem.dispose();
   renderer.setAnimationLoop(frame);
 } catch (error) {
-  pageStatus.hidden = false;
-  pageStatus.textContent = error instanceof Error ? error.message : "WebGPU failed to start";
+  showError(error);
 }

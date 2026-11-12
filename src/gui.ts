@@ -18,6 +18,17 @@ type Choice = {
 };
 
 const PRESET_MS = 900;
+const DESCRIPTIONS: Record<string, string> = {
+  VelvetDahlia: "Narrow velvet petals unfold through seven staggered, golden-angle whorls.",
+  SoftPeony: "Broad, translucent petals cup a soft heart in generously layered bloom.",
+  WildOrchid: "Five sculpted tepals surround a golden-throated lip and a pale central column.",
+  SpiderChrysanthemum: "Fine, curling ray florets burst outward around a compact ochre disk.",
+  SunburstDahlia: "Pointed golden petals radiate in precise layers with warm, luminous edges.",
+  StoneRosette: "Waxy spoon-shaped leaves spiral into a compact botanical rosette.",
+  StargazerLily: "Six speckled, recurved tepals frame a crown of pollen-rich stamens.",
+  ForestBell: "A pendant green bell shelters delicate stamens beneath its flared rim.",
+  CopperRose: "Copper-toned petals wrap a raised heart in an elegant spiral whorl.",
+};
 
 export function createPanel(
   settings: FlowerSettings,
@@ -29,6 +40,23 @@ export function createPanel(
   const selection = { preset: presetNames[0] ?? "VelvetDahlia" };
   const presetRows: Choice[] = [];
   const backdropRows: Choice[] = [];
+  const motionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-motion]"));
+  const nameOutput = document.querySelector<HTMLElement>("#flower-name");
+  const indexOutput = document.querySelector<HTMLElement>("#flower-index");
+  const descriptionOutput = document.querySelector<HTMLElement>("#flower-description");
+  const countOutput = document.querySelector<HTMLElement>("#petal-count");
+  const updateInterface = (): void => {
+    const presetIndex = Math.max(0, presetNames.indexOf(selection.preset));
+    if (nameOutput) nameOutput.textContent = presetLabel(selection.preset);
+    if (indexOutput) indexOutput.textContent = String(presetIndex + 1).padStart(2, "0");
+    if (descriptionOutput) descriptionOutput.textContent = DESCRIPTIONS[selection.preset] ?? "A procedural botanical specimen.";
+    if (countOutput) countOutput.textContent = String(Math.round(settings.instanceCount));
+    for (const button of motionButtons) {
+      const active = button.dataset.motion === settings.motionMode;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+  };
   let backdrop: BackdropName = "black";
   let blend: {
     name: string;
@@ -77,6 +105,7 @@ export function createPanel(
 
   const refresh = (): void => {
     for (const controller of controllers) controller.updateDisplay();
+    updateInterface();
   };
 
   const finishPreset = (name: string): void => {
@@ -97,12 +126,15 @@ export function createPanel(
   const markChoices = (): void => {
     for (const choice of presetRows) choice.row.classList.toggle("is-current", choice.name === selection.preset);
     for (const choice of backdropRows) choice.row.classList.toggle("is-current", choice.name === backdrop);
+    updateInterface();
   };
 
   let accentRoot: HTMLElement | null = null;
   const paintAccent = (): void => {
     accentRoot?.style.setProperty("--accent", settings.materialColorTop);
     accentRoot?.style.setProperty("--accent-deep", settings.materialColorBottom);
+    document.documentElement.style.setProperty("--accent", settings.materialColorTop);
+    document.documentElement.style.setProperty("--accent-deep", settings.materialColorBottom);
   };
 
   const chooseBackdrop = (tone: BackdropName): void => {
@@ -194,6 +226,7 @@ export function createPanel(
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (event.code === "Space") {
+      if (tag === "BUTTON" || tag === "A") return;
       event.preventDefault();
       togglePlayback();
     } else if (event.code === "ArrowRight") {
@@ -243,7 +276,8 @@ export function createPanel(
     }
   };
 
-  const gui = new GUI({ title: "Flower" });
+  const gui = new GUI({ title: "Botanical studio" });
+  gui.domElement.id = "studio-panel";
   accentRoot = gui.domElement;
   const flowers = gui.addFolder("Flowers");
   for (const preset of PRESETS) {
@@ -302,6 +336,14 @@ export function createPanel(
   }
 
   const distribution = gui.addFolder("Distribution");
+  number(distribution, "petalRandomness", 0, 0.35, 0.01, "Petal Randomness", "instances");
+  number(distribution, "radialLengthRamp", -0.2, 0.5, 0.01, "Outer Petal Length", "instances");
+  distribution.add({
+    randomize() {
+      settings.variationSeed += 1;
+      flower.updateInstances();
+    },
+  }, "randomize").name("Randomize Petals");
   const phyllotaxis = distribution.addFolder("Phyllotaxis");
   number(phyllotaxis, "instanceCount", 1, 300, 1, "Count", "instances");
   number(phyllotaxis, "phyllotaxisStartRadius", 0, 1, 0.01, "Start Radius", "instances");
@@ -323,7 +365,7 @@ export function createPanel(
   number(index, "indexBendMin", -0.5, 0.5, 0.01, "Bend Min", "uniform");
   number(index, "indexBendMax", -0.5, 0.7, 0.01, "Bend Max", "uniform");
   number(index, "indexTwist", 0, 0.2, 0.005, "Twist", "uniform");
-  number(index, "indexVariation", 0, 0.15, 0.005, "Variation", "uniform");
+  number(index, "indexVariation", 0, 0.15, 0.005, "Surface / Twist", "uniform");
 
   const growth = gui.addFolder("Growth");
   const motionChoices: Record<string, MotionMode> = {
@@ -383,18 +425,47 @@ export function createPanel(
   const coat = materialFolder.addFolder("Clearcoat");
   number(coat, "materialClearcoat", 0, 1, 0.01, "Amount", "material");
   number(coat, "materialClearcoatRoughness", 0, 1, 0.01, "Roughness", "material");
-  const edge = materialFolder.addFolder("Edge / Velvet");
+  const edge = materialFolder.addFolder("Edges");
   number(edge, "materialBorderIntensity", 0, 2, 0.01, "Border Intensity", "material");
   number(edge, "materialBorderWidth", 0.1, 1, 0.01, "Border Width", "material");
   number(edge, "materialBorderGlow", 0, 2, 0.01, "Border Glow", "material");
-  number(edge, "materialSheenIntensity", 0, 1, 0.01, "Sheen", "material");
-  number(edge, "materialSheenPower", 1, 8, 0.1, "Sheen Power", "material");
 
   const debug = gui.addFolder("Debug");
   track(debug.add(settings, "wireframe").name("Wireframe"), "uniform").onChange((enabled: boolean) => {
     flower.setWireframe(enabled);
   });
   debug.add({ reload: () => location.reload() }, "reload").name("Reload");
+
+  for (const folder of [settingsFolder, stage, petal, curvature, distribution, growth, materialFolder, debug]) folder.close();
+
+  for (const button of motionButtons) {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.motion as MotionMode | undefined;
+      if (mode !== "off" && mode !== "sway" && mode !== "bloom" && mode !== "rotate") return;
+      settings.motionMode = mode;
+      if (mode !== "off") armed = mode;
+      refresh();
+    });
+  }
+
+  const panelToggle = document.querySelector<HTMLButtonElement>("[data-action='toggle-panel']");
+  const setPanelOpen = (open: boolean): void => {
+    document.body.classList.toggle("panel-hidden", !open);
+    panelToggle?.setAttribute("aria-expanded", String(open));
+  };
+  panelToggle?.addEventListener("click", () => setPanelOpen(document.body.classList.contains("panel-hidden")));
+  setPanelOpen(!window.matchMedia("(max-width: 900px)").matches);
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-action]")) {
+    const action = button.dataset.action;
+    if (action === "toggle-panel") continue;
+    button.addEventListener("click", () => {
+      if (action === "previous") stepPreset(-1);
+      if (action === "next") stepPreset(1);
+      if (action === "reset-view") window.dispatchEvent(new CustomEvent("flower-reset-view"));
+    });
+  }
+  refresh();
 
   function number<K extends NumericKey>(
     folder: GUI,

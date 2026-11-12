@@ -3,12 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Procedural Flower — Three.js WebGPU</title>
+    <meta name="theme-color" content="#0d110f" />
+    <meta name="description" content="An interactive collection of GPU-grown procedural flowers, built with Three.js and WebGPU." />
+    <title>Flora GPU — A procedural botanical study</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <canvas id="view"></canvas>
-    <p id="status" hidden></p>
+    <div id="fallback" aria-hidden="true">
+      <div class="fallback-bloom">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <b></b>
+      </div>
+    </div>
+    <canvas id="view" aria-label="Interactive three-dimensional procedural flower"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Flora GPU home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 15C7 13 5 6 6 3c5 0 10 3 10 10Zm1 0c9-2 11-9 10-12-5 0-10 3-10 10Zm-1 2C7 19 5 26 6 29c5 0 10-3 10-10Zm1 0c9 2 11 9 10 12-5 0-10-3-10-10Z"/></svg>
+        <span><strong>FLORA</strong><small>GPU BOTANICAL STUDY</small></span>
+      </a>
+      <div class="header-actions">
+        <button class="text-button" type="button" data-action="reset-view">Reset view</button>
+        <button class="panel-button" type="button" data-action="toggle-panel" aria-expanded="true" aria-controls="studio-panel">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14M6 3v4m8 1v4M8 13v4"/></svg>
+          <span>Studio controls</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="interface">
+      <section class="flower-caption" aria-live="polite">
+        <p class="collection-label"><span id="flower-index">01</span> / 09 <i></i> PROCEDURAL SPECIMEN</p>
+        <h1 id="flower-name">Velvet Dahlia</h1>
+        <p id="flower-description">Layered velvet petals unfold in a precise golden-angle whorl.</p>
+        <p class="render-detail"><span></span> LIVE GPU SHADERS <b>·</b> <span id="petal-count">110</span> PETALS</p>
+      </section>
+
+      <section class="transport" aria-label="Flower playback controls">
+        <div class="preset-steppers">
+          <button class="icon-button" type="button" data-action="previous" aria-label="Previous flower">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg>
+          </button>
+          <button class="icon-button" type="button" data-action="next" aria-label="Next flower">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+          </button>
+        </div>
+        <div class="motion-controls" role="group" aria-label="Animation mode">
+          <button type="button" data-motion="off" aria-label="Pause animation" title="Pause animation">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10M13 5v10"/></svg><span>Pause</span>
+          </button>
+          <button type="button" data-motion="sway" class="is-active" aria-pressed="true">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 16V8m0 4c-5 0-6-3-6-5 4 0 6 2 6 5Zm0-2c4 0 6-3 6-6-4 0-6 2-6 6Z"/></svg><span>Sway</span>
+          </button>
+          <button type="button" data-motion="bloom" aria-pressed="false">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 10C4 9 3 5 4 3c3 0 6 2 6 6Zm0 0c6-1 7-5 6-7-3 0-6 2-6 6Zm0 0c-6 1-7 5-6 7 3 0 6-2 6-6Zm0 0c6 1 7 5 6 7-3 0-6-2-6-6Z"/></svg><span>Bloom</span>
+          </button>
+          <button type="button" data-motion="rotate" aria-pressed="false">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 7A6 6 0 1 0 16 12M16 3v4h-4"/></svg><span>Orbit</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footnote">
+      <span>DRAG TO ORBIT</span><i></i><span>SCROLL TO ZOOM</span><i></i><span>← → TO EXPLORE</span>
+    </footer>
+    <div id="loading" role="status"><span></span>Growing the first bloom…</div>
+    <p id="status" role="alert" hidden></p>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

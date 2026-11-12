@@ -6,13 +6,18 @@ declare module "three/webgpu" {
     getHexString(): string;
   }
 
+  export class Vector2 {
+    constructor(x?: number, y?: number);
+  }
+
   export class Vector3 {
     set(x: number, y: number, z: number): this;
     setScalar(value: number): this;
   }
 
   export class Euler {
-    set(x: number, y: number, z: number): this;
+    constructor(x?: number, y?: number, z?: number, order?: string);
+    set(x: number, y: number, z: number, order?: string): this;
   }
 
   export class Quaternion {
@@ -30,17 +35,43 @@ declare module "three/webgpu" {
     dispose(): void;
   }
 
+  export class CylinderGeometry extends BufferGeometry {
+    constructor(radiusTop: number, radiusBottom: number, height: number, radialSegments?: number);
+  }
+
+  export class SphereGeometry extends BufferGeometry {
+    constructor(radius: number, widthSegments?: number, heightSegments?: number);
+  }
+
+  export class LatheGeometry extends BufferGeometry {
+    constructor(points: Vector2[], segments?: number);
+  }
+
   export class Float32BufferAttribute {
     constructor(array: number[], itemSize: number);
   }
 
   export class Group {
     constructor();
-    rotation: { x: number; y: number; z: number };
-    add(object: unknown): this;
+    rotation: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
+    position: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
+    scale: { x: number; y: number; z: number; set(x: number, y: number, z: number): void; setScalar(value: number): void };
+    visible: boolean;
+    add(...objects: unknown[]): this;
+    traverse(callback: (object: unknown) => void): void;
+  }
+
+  export class Mesh extends Group {
+    constructor(geometry: BufferGeometry, material: MeshPhysicalNodeMaterial);
+    geometry: BufferGeometry;
+    material: MeshPhysicalNodeMaterial;
   }
 
   export class MeshPhysicalNodeMaterial {
+    constructor(parameters?: { color?: string | number; roughness?: number; metalness?: number; side?: number });
+    color: Color;
+    roughness: number;
+    sheen: number;
     positionNode: unknown;
     normalNode: unknown;
     colorNode: unknown;
@@ -70,11 +101,13 @@ declare module "three/webgpu" {
     constructor(geometry: BufferGeometry, material: MeshPhysicalNodeMaterial, count: number);
     geometry: BufferGeometry;
     count: number;
+    visible: boolean;
     frustumCulled: boolean;
     castShadow: boolean;
     receiveShadow: boolean;
     instanceMatrix: { needsUpdate: boolean; array: ArrayLike<number> };
     setMatrixAt(index: number, matrix: Matrix4): void;
+    computeBoundingSphere(): void;
   }
 
   export class Scene {
@@ -87,6 +120,7 @@ declare module "three/webgpu" {
   export class PerspectiveCamera {
     constructor(fov: number, aspect: number, near: number, far: number);
     aspect: number;
+    fov: number;
     position: { set(x: number, y: number, z: number): void };
     updateProjectionMatrix(): void;
   }
@@ -128,6 +162,8 @@ declare module "three/webgpu" {
 
   export class WebGPURenderer {
     constructor(parameters?: { canvas?: HTMLCanvasElement; antialias?: boolean });
+    toneMapping: number;
+    toneMappingExposure: number;
     setPixelRatio(value: number): void;
     setSize(width: number, height: number): void;
     setAnimationLoop(callback: ((time: number) => void) | null): void;
@@ -143,6 +179,7 @@ declare module "three/webgpu" {
   }
 
   export const DoubleSide: number;
+  export const ACESFilmicToneMapping: number;
   export const MathUtils: {
     lerp(start: number, end: number, t: number): number;
     smoothstep(x: number, min: number, max: number): number;
@@ -183,6 +220,7 @@ declare module "three/tsl" {
   export function directionToFaceDirection(direction: unknown): Tsl;
   export const positionView: Tsl;
   export const normalView: Tsl;
+  export const normalViewGeometry: Tsl;
   export const positionViewDirection: Tsl;
   export const normalWorld: Tsl;
 }
