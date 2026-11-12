@@ -3,14 +3,15 @@ import {
   CylinderGeometry,
   DoubleSide,
   Group,
-  LatheGeometry,
+  InstancedMesh,
   Mesh,
   MeshPhysicalNodeMaterial,
+  Object3D,
   SphereGeometry,
-  Vector2,
 } from "three/webgpu";
-import { abs, clamp, float, mix, positionLocal, pow, sin, smoothstep, uniform, uv, vec3 } from "three/tsl";
+import { abs, float, mix, smoothstep, uniform, uv } from "three/tsl";
 import { architectureFor } from "./architecture";
+import { createPassionAnatomy } from "./passionflower";
 import { createPetalGeometry } from "./petalMesh";
 import type { FlowerSettings } from "./settings";
 
@@ -25,6 +26,40 @@ export type FlowerAnatomy = {
 
 function solid(color: string, roughness = 0.65): MeshPhysicalNodeMaterial {
   return new MeshPhysicalNodeMaterial({ color, roughness, metalness: 0 });
+}
+
+function createPeonyStamens(): Group {
+  const group = new Group();
+  const count = 48;
+  const filaments = new InstancedMesh(
+    new CylinderGeometry(0.007, 0.009, 0.2, 6),
+    solid("#e8b84c", 0.65),
+    count,
+  );
+  const anthers = new InstancedMesh(
+    new SphereGeometry(0.03, 10, 7),
+    solid("#d99625", 0.58),
+    count,
+  );
+  const dummy = new Object3D();
+  for (let index = 0; index < count; index += 1) {
+    const angle = index * 2.399963229728653;
+    const radius = 0.035 + 0.22 * Math.sqrt((index + 0.5) / count);
+    const height = 0.22 + (1 - radius / 0.28) * 0.12 + Math.sin(index * 7.31) * 0.018;
+    dummy.position.set(Math.sin(angle) * radius, 0.16 + height * 0.5, Math.cos(angle) * radius);
+    dummy.rotation.set(Math.cos(angle) * 0.13, angle, -Math.sin(angle) * 0.13);
+    dummy.scale.set(1, height / 0.2, 1);
+    dummy.updateMatrix();
+    filaments.setMatrixAt(index, dummy.matrix);
+    dummy.position.y = 0.18 + height;
+    dummy.scale.set(0.8, 1.35, 0.8);
+    dummy.updateMatrix();
+    anthers.setMatrixAt(index, dummy.matrix);
+  }
+  filaments.instanceMatrix.needsUpdate = true;
+  anthers.instanceMatrix.needsUpdate = true;
+  group.add(filaments, anthers);
+  return group;
 }
 
 export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
@@ -45,7 +80,6 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
     .mul(smoothstep(0.08, 0.34, lipUv.y))
     .mul(float(1).sub(smoothstep(0.62, 0.92, lipUv.y)));
   lipMaterial.colorNode = mix(mix(lipBottom, lipTop, lipUv.y.mul(0.38)), lipHighlight, throat.mul(0.9));
-  lipMaterial.sheen = 0.3;
 
   const stem = new Mesh(new CylinderGeometry(0.026, 0.042, 2.7, 12), stemMaterial);
   stem.position.y = -1.35;
@@ -90,78 +124,43 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   }
   group.add(stamens);
 
+  const peonyStamens = createPeonyStamens();
+  group.add(peonyStamens);
+  const passion = createPassionAnatomy();
+  group.add(passion.group);
+
   const column = new Mesh(new SphereGeometry(0.14, 24, 16), filamentMaterial);
   column.scale.set(0.75, 1.35, 0.8);
-  column.position.set(0, 0.19, 0.12);
+  column.position.set(0, 0.22, 0.36);
   group.add(column);
 
   let lipGeometry = createPetalGeometry({
     ...settings,
-    petalProfile: "spoon",
-    length: 1.02,
-    width: 0.82,
+    petalProfile: "ruffled",
+    length: 0.86,
+    width: 1.08,
     baseWidth: 0.18,
-    tipWidth: 0.94,
-    bloomRootRoundness: 0.52,
-    rootLength: 0.2,
+    tipWidth: 0.96,
+    bloomRootRoundness: 0.72,
+    rootLength: 0.18,
   });
   const lip = new Mesh(lipGeometry, lipMaterial);
-  lip.position.set(0, 0.07, 0.11);
-  lip.rotation.x = 1.82;
-  lip.scale.setScalar(0.78);
+  lip.position.set(0, 0.12, 0.34);
+  lip.rotation.set(0.2, 0, Math.PI);
+  lip.scale.setScalar(0.9);
   group.add(lip);
-
-  const bellOpen = uniform(settings.animation / 10);
-  const bellTime = uniform(0);
-  const bellWind = uniform(0);
-  const bellBottom = uniform(new Color(settings.materialColorBottom));
-  const bellTop = uniform(new Color(settings.materialColorTop));
-  const bellMaterial = new MeshPhysicalNodeMaterial({ roughness: 0.52, side: DoubleSide });
-  const bellAlong = clamp(float(0.38).sub(positionLocal.y).div(1.24), 0, 1);
-  const bellFlare = float(1).add(bellOpen.mul(0.12).mul(pow(bellAlong, 3)));
-  const bellSway = sin(bellTime.mul(1.1)).mul(bellWind).mul(pow(bellAlong, 2)).mul(0.06);
-  bellMaterial.positionNode = vec3(
-    positionLocal.x.mul(bellFlare).add(bellSway),
-    positionLocal.y,
-    positionLocal.z.mul(bellFlare),
-  );
-  const bellSeam = pow(sin(uv().x.mul(Math.PI * 12)).mul(0.5).add(0.5), 18).mul(0.16);
-  const bellGradient = mix(bellBottom, bellTop, smoothstep(-0.86, 0.34, positionLocal.y));
-  const bellShaded = mix(bellGradient, bellBottom, bellSeam);
-  bellMaterial.colorNode = bellShaded;
-  bellMaterial.emissiveNode = bellShaded.mul(0.24);
-  bellMaterial.sheen = 0.35;
-  const bellProfile = [
-    new Vector2(0.1, 0.38),
-    new Vector2(0.15, 0.3),
-    new Vector2(0.18, 0.1),
-    new Vector2(0.26, -0.15),
-    new Vector2(0.38, -0.42),
-    new Vector2(0.48, -0.68),
-    new Vector2(0.53, -0.78),
-    new Vector2(0.56, -0.82),
-    new Vector2(0.53, -0.87),
-    new Vector2(0.48, -0.82),
-  ];
-  const bellCup = new Mesh(new LatheGeometry(bellProfile, 48), bellMaterial);
-  group.add(bellCup);
 
   const update = (): void => {
     const architecture = architectureFor(settings.name);
-    const isBell = architecture.kind === "bell";
     centerMaterial.color.set(settings.materialColorBottom);
     lipBottom.value.set(settings.materialTipColor);
     lipTop.value.set(settings.materialColorTop);
-    bellBottom.value.set(settings.materialColorBottom);
-    bellTop.value.set(settings.materialColorTop);
-    bellCup.visible = isBell;
-    center.visible = architecture.centerScale > 0 && !isBell;
+    center.visible = architecture.centerScale > 0 && architecture.kind !== "passion";
     center.position.y = 0.075;
     center.scale.set(architecture.centerScale, architecture.centerScale * 0.46, architecture.centerScale);
-    stamens.visible = architecture.kind === "lily" || isBell;
-    stamens.rotation.x = isBell ? Math.PI : 0;
-    stamens.position.y = isBell ? 0.35 : 0;
-    stamens.scale.setScalar(isBell ? 0.72 : 1);
+    stamens.visible = architecture.kind === "lily";
+    peonyStamens.visible = architecture.kind === "peony";
+    passion.group.visible = architecture.kind === "passion";
     column.visible = architecture.kind === "orchid";
     lip.visible = architecture.kind === "orchid";
     stem.visible = architecture.kind !== "rosette";
@@ -175,13 +174,13 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
     leafGeometry = createPetalGeometry(leafSettings);
     lipGeometry = createPetalGeometry({
       ...settings,
-      petalProfile: "spoon",
-      length: 1.02,
-      width: 0.82,
+      petalProfile: "ruffled",
+      length: 0.86,
+      width: 1.08,
       baseWidth: 0.18,
-      tipWidth: 0.94,
-      bloomRootRoundness: 0.52,
-      rootLength: 0.2,
+      tipWidth: 0.96,
+      bloomRootRoundness: 0.72,
+      rootLength: 0.18,
     });
     leftLeaf.geometry = leafGeometry;
     rightLeaf.geometry = leafGeometry;
@@ -191,11 +190,10 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   };
 
   const setBloom = (value: number): void => {
-    bellOpen.value = value;
+    passion.setBloom(value);
   };
   const setSway = (time: number, strength: number): void => {
-    bellTime.value = time;
-    bellWind.value = strength;
+    passion.setSway(time, strength);
   };
   const setWireframe = (enabled: boolean): void => {
     group.traverse((object) => {
@@ -204,6 +202,7 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
         material.wireframe = enabled;
       }
     });
+    passion.setWireframe(enabled);
   };
 
   update();

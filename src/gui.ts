@@ -20,13 +20,13 @@ type Choice = {
 const PRESET_MS = 900;
 const DESCRIPTIONS: Record<string, string> = {
   VelvetDahlia: "Narrow velvet petals unfold through seven staggered, golden-angle whorls.",
-  SoftPeony: "Broad, translucent petals cup a soft heart in generously layered bloom.",
+  SoftPeony: "Broad, cupped pink ruffles surround an open cluster of golden stamens.",
   WildOrchid: "Five sculpted tepals surround a golden-throated lip and a pale central column.",
-  SpiderChrysanthemum: "Fine, curling ray florets burst outward around a compact ochre disk.",
+  GardenChrysanthemum: "Broad spoon-shaped orange petals curl into dense, rounded layers.",
   SunburstDahlia: "Pointed golden petals radiate in precise layers with warm, luminous edges.",
   StoneRosette: "Waxy spoon-shaped leaves spiral into a compact botanical rosette.",
   StargazerLily: "Six speckled, recurved tepals frame a crown of pollen-rich stamens.",
-  ForestBell: "A pendant green bell shelters delicate stamens beneath its flared rim.",
+  PassionFlower: "Lavender-white petals frame a blue-purple corona and raised central crown.",
   CopperRose: "Copper-toned petals wrap a raised heart in an elegant spiral whorl.",
 };
 
@@ -306,6 +306,8 @@ export function createPanel(
     Strap: "strap",
     Spoon: "spoon",
     Bell: "bell",
+    Rose: "rose",
+    Ruffled: "ruffled",
   }).name("Profile").onChange(() => {
     flower.syncUniforms();
     flower.rebuildPetal();

@@ -11,17 +11,32 @@ declare module "three/webgpu" {
   }
 
   export class Vector3 {
+    constructor(x?: number, y?: number, z?: number);
+    x: number;
+    y: number;
+    z: number;
     set(x: number, y: number, z: number): this;
     setScalar(value: number): this;
+    clone(): Vector3;
+    copy(value: Vector3): this;
+    add(value: Vector3): this;
+    sub(value: Vector3): this;
+    multiplyScalar(value: number): this;
+    length(): number;
+    normalize(): this;
   }
 
   export class Euler {
     constructor(x?: number, y?: number, z?: number, order?: string);
+    x: number;
+    y: number;
+    z: number;
     set(x: number, y: number, z: number, order?: string): this;
   }
 
   export class Quaternion {
     setFromEuler(euler: Euler): this;
+    setFromUnitVectors(from: Vector3, to: Vector3): this;
   }
 
   export class Matrix4 {
@@ -43,6 +58,22 @@ declare module "three/webgpu" {
     constructor(radius: number, widthSegments?: number, heightSegments?: number);
   }
 
+  export class BoxGeometry extends BufferGeometry {
+    constructor(width?: number, height?: number, depth?: number);
+  }
+
+  export class TorusGeometry extends BufferGeometry {
+    constructor(radius?: number, tube?: number, radialSegments?: number, tubularSegments?: number);
+  }
+
+  export class QuadraticBezierCurve3 {
+    constructor(v0: Vector3, v1: Vector3, v2: Vector3);
+  }
+
+  export class TubeGeometry extends BufferGeometry {
+    constructor(path: QuadraticBezierCurve3, tubularSegments?: number, radius?: number, radialSegments?: number, closed?: boolean);
+  }
+
   export class LatheGeometry extends BufferGeometry {
     constructor(points: Vector2[], segments?: number);
   }
@@ -51,11 +82,19 @@ declare module "three/webgpu" {
     constructor(array: number[], itemSize: number);
   }
 
+  export class Object3D {
+    position: Vector3;
+    rotation: Euler;
+    scale: Vector3;
+    matrix: Matrix4;
+    updateMatrix(): void;
+  }
+
   export class Group {
     constructor();
-    rotation: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
-    position: { x: number; y: number; z: number; set(x: number, y: number, z: number): void };
-    scale: { x: number; y: number; z: number; set(x: number, y: number, z: number): void; setScalar(value: number): void };
+    rotation: Euler;
+    position: Vector3;
+    scale: Vector3;
     visible: boolean;
     add(...objects: unknown[]): this;
     traverse(callback: (object: unknown) => void): void;
@@ -65,6 +104,7 @@ declare module "three/webgpu" {
     constructor(geometry: BufferGeometry, material: MeshPhysicalNodeMaterial);
     geometry: BufferGeometry;
     material: MeshPhysicalNodeMaterial;
+    quaternion: Quaternion;
   }
 
   export class MeshPhysicalNodeMaterial {

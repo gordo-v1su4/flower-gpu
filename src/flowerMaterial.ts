@@ -36,7 +36,9 @@ function edgePowerFor(profile: PetalProfile): number {
   switch (profile) {
     case "pointed": return 2.15;
     case "round": return 1.05;
-    case "strap": return 2.8;
+    case "rose": return 1.1;
+    case "ruffled": return 0.9;
+    case "strap": return 1.8;
     case "spoon": return 1.35;
     case "bell": return 0.65;
   }
@@ -51,7 +53,7 @@ function kindFor(name: string): number {
     case "chrysanthemum": return 3;
     case "rosette": return 4;
     case "lily": return 5;
-    case "bell": return 6;
+    case "passion": return 6;
     case "rose": return 7;
   }
 }
@@ -59,11 +61,11 @@ function kindFor(name: string): number {
 function widthScaleFor(name: string): number {
   switch (architectureFor(name).kind) {
     case "dahlia": return 0.46;
-    case "peony": return 0.82;
-    case "chrysanthemum": return 0.78;
-    case "rosette": return 0.86;
-    case "rose": return 0.88;
-    case "bell": return 1.18;
+    case "peony": return 0.88;
+    case "chrysanthemum": return 0.9;
+    case "rosette": return 0.92;
+    case "rose": return 0.9;
+    case "passion": return 1;
     default: return 1;
   }
 }
@@ -377,7 +379,8 @@ export function createFlower(settings: FlowerSettings): FlowerView {
 
   const syncUniforms = (): void => {
     const architecture = architectureFor(settings.name);
-    petals.visible = architecture.kind !== "bell";
+    group.rotation.set(architecture.kind === "orchid" ? -0.42 : 0, architecture.kind === "orchid" ? 0.16 : 0, 0);
+    petals.visible = true;
     anatomy.setBloom(settings.animation / 10);
     length.value = settings.length;
     width.value = settings.width;

@@ -2,6 +2,12 @@ import { BufferGeometry, Float32BufferAttribute, MathUtils } from "three/webgpu"
 import type { PetalProfile } from "./presets";
 import type { FlowerSettings } from "./settings";
 
+function roundedCap(along: number, start: number): number {
+  if (along <= start) return 1;
+  const t = (along - start) / (1 - start);
+  return Math.sqrt(Math.max(0, 1 - t * t));
+}
+
 function outline(profile: PetalProfile, along: number): number {
   switch (profile) {
     case "pointed": {
@@ -14,10 +20,17 @@ function outline(profile: PetalProfile, along: number): number {
       const tip = 1 - Math.pow(along, 7) * 0.22;
       return Math.pow(Math.max(bell, 0), 0.32) * tip;
     }
+    case "rose": {
+      const body = Math.sin(Math.min(1, along / 0.86) * Math.PI * 0.5);
+      return Math.pow(body, 0.62) * roundedCap(along, 0.6);
+    }
+    case "ruffled": {
+      const body = Math.sin(Math.pow(along, 0.55) * Math.PI * 0.5);
+      return Math.pow(Math.max(body, 0), 0.42) * roundedCap(along, 0.64);
+    }
     case "strap": {
-      const body = 0.42 + 0.2 * Math.sin(Math.pow(along, 0.9) * Math.PI);
-      const tip = 1 - Math.pow(along, 1.7) * 0.55;
-      return body * tip;
+      const body = 0.58 + 0.3 * Math.sin(Math.pow(along, 0.8) * Math.PI);
+      return body * roundedCap(along, 0.8);
     }
     case "spoon": {
       const claw = along * along * (3 - 2 * along);
@@ -45,8 +58,12 @@ function ruffle(profile: PetalProfile, along: number, signed: number): number {
       return 1 + 0.035 * Math.sin(along * Math.PI * 1.1);
     case "round":
       return 1 + 0.05 * Math.sin(along * Math.PI * 2.2 + signed * 1.2) * (0.25 + 0.75 * margin);
+    case "rose":
+      return 1 + 0.025 * Math.sin(along * Math.PI * 2 + signed) * margin;
+    case "ruffled":
+      return 1 + 0.12 * Math.sin(along * Math.PI * 7 + signed * 3.2) * (0.3 + 0.7 * margin);
     case "strap":
-      return 1 + 0.06 * Math.sin(along * Math.PI * 4 + signed);
+      return 1 + 0.055 * Math.sin(along * Math.PI * 3 + signed);
     case "spoon":
       return 1 + 0.04 * Math.sin(along * Math.PI) * (0.35 + 0.65 * margin);
     case "bell":
