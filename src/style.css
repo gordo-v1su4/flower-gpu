@@ -1,0 +1,136 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #080808;
+}
+
+#view {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#status {
+  position: fixed;
+  left: 24px;
+  top: 24px;
+  z-index: 2;
+  max-width: 28rem;
+  margin: 0;
+  color: #f4e7ea;
+  font: 16px/1.4 Palatino, "Palatino Linotype", Georgia, serif;
+}
+
+.lil-gui {
+  --width: 292px;
+  --background-color: #101012;
+  --text-color: #d8d2d4;
+  --title-background-color: #0c0c0e;
+  --title-text-color: #f6eef1;
+  --widget-color: #1b1b20;
+  --hover-color: #2c2428;
+  --focus-color: #3c2a31;
+  --number-color: var(--accent, #f0b4c3);
+  --string-color: var(--accent, #f0b4c3);
+  --font-family: "Segoe UI", sans-serif;
+  --widget-border-radius: 4px;
+  --folder-indent: 8px;
+  color-scheme: dark;
+}
+
+.lil-gui.lil-auto-place {
+  top: 12px;
+  right: 12px;
+  max-height: calc(100% - 24px);
+  border: 1px solid #2a2428;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.lil-gui .lil-title {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.lil-gui.root > .lil-title,
+.lil-gui.lil-root > .lil-title {
+  text-transform: none;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.lil-gui input,
+.lil-gui select,
+.lil-gui option {
+  color-scheme: dark;
+  background: #1b1b20;
+  color: #f0b4c3;
+}
+
+.lil-gui .lil-controller.preset-choice button,
+.lil-gui .lil-controller.stage-choice button {
+  background: #1b1b20;
+  color: #d8d2d4;
+  text-align: left;
+  padding-left: 10px;
+}
+
+.lil-gui .lil-controller.preset-choice button:hover,
+.lil-gui .lil-controller.stage-choice button:hover {
+  background: #2c2428;
+}
+
+.lil-gui .lil-controller.preset-choice.is-current button,
+.lil-gui .lil-controller.stage-choice.is-current button,
+.lil-gui .lil-controller.preset-choice.is-current button:hover,
+.lil-gui .lil-controller.stage-choice.is-current button:hover {
+  background: color-mix(in srgb, var(--accent, #e48aa3) 24%, #161418);
+  color: color-mix(in srgb, var(--accent, #ffe7ee) 72%, white);
+  box-shadow: none;
+}
+
+.lil-gui .lil-controller.lil-number .lil-slider,
+.lil-gui .lil-controller.lil-number .lil-slider:hover,
+.lil-gui .lil-controller.lil-number .lil-slider.lil-active {
+  position: relative;
+  container-type: inline-size;
+  background: #141418;
+}
+
+.lil-gui .lil-controller.lil-number .lil-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  box-sizing: border-box;
+  background-repeat: no-repeat;
+  background-size: 100cqi 100%;
+  box-shadow: none;
+}
+
+.lil-gui .lil-controller.lil-number.range-up .lil-fill {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-deep, #241c20) 55%, #141418) 0%,
+    color-mix(in srgb, var(--accent, #6d4450) 45%, #241c20) 62%,
+    color-mix(in srgb, var(--accent, #6d4450) 70%, #2a2024) 100%
+  );
+}
+
+.lil-gui .lil-controller.lil-number.range-out .lil-fill {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent, #6d4450) 70%, #2a2024) 0%,
+    color-mix(in srgb, var(--accent-deep, #241c20) 55%, #141418) var(--zero),
+    color-mix(in srgb, var(--accent, #6d4450) 70%, #2a2024) 100%
+  );
+  background-position-x: calc(var(--origin, 0) * -100cqi);
+}
