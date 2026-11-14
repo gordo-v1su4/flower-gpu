@@ -3,6 +3,8 @@ import { Color } from "three/webgpu";
 import { PRESETS, type FlowerPreset } from "./presets";
 import { assignPreset, type FlowerSettings, type MotionMode } from "./settings";
 import type { FlowerView } from "./flowerMaterial";
+import { createCurveEditor } from "./curveEditor";
+import { shapeFor, type ShapeSettings } from "./shape";
 
 type RefreshKind = "mesh" | "instances" | "material" | "uniform";
 type BackdropName = "black" | "gray";
@@ -36,6 +38,8 @@ export function createPanel(
   setBackdrop: (tone: BackdropName) => void,
 ): Panel {
   const controllers: Controller[] = [];
+  const curveEditors: ReturnType<typeof createCurveEditor>[] = [];
+  const editedShapes = new Map<string, ShapeSettings>();
   const presetNames = PRESETS.map((preset) => preset.name);
   const selection = { preset: presetNames[0] ?? "VelvetDahlia" };
   const presetRows: Choice[] = [];
@@ -46,6 +50,7 @@ export function createPanel(
   const descriptionOutput = document.querySelector<HTMLElement>("#flower-description");
   const countOutput = document.querySelector<HTMLElement>("#petal-count");
   const updateInterface = (): void => {
+    document.body.dataset.specimen = settings.name;
     const presetIndex = Math.max(0, presetNames.indexOf(selection.preset));
     if (nameOutput) nameOutput.textContent = presetLabel(selection.preset);
     if (indexOutput) indexOutput.textContent = String(presetIndex + 1).padStart(2, "0");
@@ -74,6 +79,7 @@ export function createPanel(
   };
 
   const apply = (kind: RefreshKind, key?: keyof FlowerSettings): void => {
+    if (key === "animation") { settings.motionMode = "off"; updateInterface(); }
     if (key) writeUniform(key);
     switch (kind) {
       case "mesh":
@@ -105,6 +111,7 @@ export function createPanel(
 
   const refresh = (): void => {
     for (const controller of controllers) controller.updateDisplay();
+    for (const editor of curveEditors) editor.refresh();
     updateInterface();
   };
 
@@ -112,6 +119,7 @@ export function createPanel(
     const preset = PRESETS.find((entry) => entry.name === name);
     if (!preset) return;
     assignPreset(settings, preset);
+    Object.assign(settings, editedShapes.get(name) ?? {});
     selection.preset = name;
     flower.syncUniforms();
     flower.updateMaterial();
@@ -121,6 +129,7 @@ export function createPanel(
     refresh();
     markChoices();
     paintAccent();
+    document.body.dataset.transitioning = "false";
   };
 
   const markChoices = (): void => {
@@ -146,6 +155,7 @@ export function createPanel(
   const startPreset = (name: string): void => {
     const preset = PRESETS.find((entry) => entry.name === name);
     if (!preset) return;
+    if (!blend) editedShapes.set(settings.name, Object.fromEntries(Object.keys(shapeFor(settings.name)).map((key) => [key, settings[key as keyof ShapeSettings]])) as ShapeSettings);
     selection.preset = name;
     markChoices();
     const start: Record<string, number | string> = {};
@@ -158,6 +168,7 @@ export function createPanel(
       if ((numeric || color) && (typeof current === "number" || typeof current === "string")) start[key] = current;
     }
     blend = { name, target: preset, start, startTime: performance.now() };
+    document.body.dataset.transitioning = "true";
   };
 
   const tickPreset = (now: number): void => {
@@ -224,7 +235,7 @@ export function createPanel(
 
   window.addEventListener("keydown", (event) => {
     const tag = document.activeElement?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || document.activeElement?.getAttribute("role") === "slider") return;
     if (event.code === "Space") {
       if (tag === "BUTTON" || tag === "A") return;
       event.preventDefault();
@@ -291,6 +302,10 @@ export function createPanel(
   settingsFolder.add({ copySettings }, "copySettings").name("Copy Settings");
   settingsFolder.add({ pasteSettings }, "pasteSettings").name("Paste Settings");
   const stage = gui.addFolder("Stage");
+  const views = stage.addFolder("Inspection views");
+  for (const [label, view] of [["Front", "front"], ["Side", "right"], ["Top", "top"], ["Below", "underneath"], ["Three quarter", "threeQuarter"], ["Free orbit", "home"]] as const) {
+    views.add({view() { settings.motionMode = "off"; flower.syncUniforms(); refresh(); window.snapFlowerView(view); }}, "view").name(label);
+  }
   for (const tone of ["black", "gray"] as const) {
     const choice = stage.add({ pick: () => chooseBackdrop(tone) }, "pick").name(tone === "black" ? "Black" : "Medium Gray");
     choice.domElement.classList.add("stage-choice");
@@ -328,6 +343,10 @@ export function createPanel(
   number(dome, "bloomDomePower", 0.5, 6, 0.01, "Bloom Power", "uniform");
 
   const curvature = gui.addFolder("Curvature");
+  const profileEditor = createCurveEditor(settings, "petal", () => flower.syncUniforms());
+  curvature.domElement.querySelector(".lil-children")!.append(profileEditor.element);
+  curveEditors.push(profileEditor);
+  number(curvature, "petalCup", 0, 1.5, 0.01, "Petal Cup", "uniform");
   const bud = curvature.addFolder("Bud");
   const bloom = curvature.addFolder("Bloom");
   for (const key of ["budRoot", "budSpine", "budTip", "budSide"] as const) {
@@ -338,6 +357,11 @@ export function createPanel(
   }
 
   const distribution = gui.addFolder("Distribution");
+  const heightEditor = createCurveEditor(settings, "height", () => flower.updateInstances());
+  distribution.domElement.querySelector(".lil-children")!.append(heightEditor.element);
+  curveEditors.push(heightEditor);
+  number(distribution, "radialSpan", 0, 1.5, 0.01, "Attachment Radius", "instances");
+  number(distribution, "petalClearance", 0, 0.18, 0.005, "Overlap Clearance", "instances");
   number(distribution, "petalRandomness", 0, 0.35, 0.01, "Petal Randomness", "instances");
   number(distribution, "radialLengthRamp", -0.2, 0.5, 0.01, "Outer Petal Length", "instances");
   distribution.add({
@@ -357,9 +381,9 @@ export function createPanel(
   const index = distribution.addFolder("Index Variation");
   number(index, "indexYSpacing", -0.1, 0.1, 0.001, "Y Spacing", "instances");
   number(index, "indexYOffset", -5, 5, 0.01, "Y Offset", "instances");
-  number(index, "indexScaleMin", 0.3, 1.2, 0.01, "Scale Min", "uniform");
-  number(index, "indexScaleMax", 0.5, 1.5, 0.01, "Scale Max", "uniform");
-  number(index, "indexScalePower", 0.2, 2, 0.01, "Scale Power", "uniform");
+  number(index, "indexScaleMin", 0.1, 1.2, 0.01, "Scale Min", "instances");
+  number(index, "indexScaleMax", 0.5, 1.5, 0.01, "Scale Max", "instances");
+  number(index, "indexScalePower", 0.2, 2, 0.01, "Scale Power", "instances");
   number(index, "indexLengthMin", 0.5, 1.2, 0.01, "Length Min", "uniform");
   number(index, "indexLengthMax", 0.5, 1.3, 0.01, "Length Max", "uniform");
   number(index, "indexWidthMin", 0.5, 1.2, 0.01, "Width Min", "uniform");
@@ -376,9 +400,10 @@ export function createPanel(
     Rotate: "rotate",
     Sway: "sway",
   };
-  growth.add(settings, "motionMode", motionChoices).name("Mode").onChange((mode: MotionMode) => {
+  controllers.push(growth.add(settings, "motionMode", motionChoices).name("Mode").onChange((mode: MotionMode) => {
     if (mode !== "off") armed = mode;
-  });
+  }));
+  number(growth, "closedScale", 0.25, 1, 0.01, "Closed Size", "uniform");
   number(growth, "animation", 0, 10, 0.01, "Progress", "uniform");
   number(growth, "animationSpread", 0, 1, 0.01, "Spread", "uniform");
   number(growth, "animationDuration", 0.1, 1, 0.01, "Duration", "uniform");
@@ -386,13 +411,15 @@ export function createPanel(
   number(growth, "animationJitter", 0, 0.15, 0.005, "Jitter", "uniform");
   growth.add({
     reset() {
+      settings.motionMode = "off";
       settings.animation = 0;
       flower.syncUniforms();
       refresh();
     },
-  }, "reset").name("Reset");
+  }, "reset").name("Closed Bud");
   growth.add({
     half() {
+      settings.motionMode = "off";
       settings.animation = 5;
       flower.syncUniforms();
       refresh();
@@ -400,6 +427,7 @@ export function createPanel(
   }, "half").name("Half Bloom");
   growth.add({
     bloom() {
+      settings.motionMode = "off";
       settings.animation = 10;
       flower.syncUniforms();
       refresh();

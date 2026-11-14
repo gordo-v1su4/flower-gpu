@@ -84,7 +84,7 @@ export type FlowerPreset = {
   materialSheenPower: number;
 };
 
-export const PRESETS: readonly FlowerPreset[] = [
+const SOURCE_PRESETS: readonly FlowerPreset[] = [
 {
   name: "VelvetDahlia",
   petalProfile: "round",
@@ -824,3 +824,15 @@ export const PRESETS: readonly FlowerPreset[] = [
   materialSheenPower: 2.8
 }
 ];
+
+// Species proportions fitted to the supplied top and profile references.
+const SHAPE_PROPORTIONS: Record<string, Partial<FlowerPreset>> = {
+  VelvetDahlia: { indexScaleMin: 0.55, indexLengthMin: 0.9 },
+  SunburstDahlia: { instanceCount: 96, width: 0.95, indexScaleMin: 0.55, indexLengthMin: 0.9 },
+  GardenChrysanthemum: { instanceCount: 144, length: 1.5, width: 0.4, indexScaleMin: 0.7, indexLengthMin: 1.1, indexLengthMax: 1 },
+  SoftPeony: { instanceCount: 48, width: 1.3, indexScaleMin: 0.9, indexLengthMin: 1.1 },
+  CopperRose: { instanceCount: 32, length: 1.2, indexScaleMin: 0.85, indexLengthMin: 1.4, indexWidthMin: 0.42 },
+  StoneRosette: { indexScaleMin: 0.65, indexLengthMin: 1.15 },
+};
+
+export const PRESETS: readonly FlowerPreset[] = SOURCE_PRESETS.map((preset) => ({ ...preset, ...SHAPE_PROPORTIONS[preset.name] }));

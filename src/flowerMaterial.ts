@@ -7,6 +7,7 @@ import {
 } from "three/webgpu";
 import {
   Fn,
+  attribute,
   abs,
   clamp,
   cos,
@@ -16,6 +17,7 @@ import {
   instanceIndex,
   max,
   mix,
+  normalFlat,
   positionLocal,
   pow,
   sin,
@@ -29,6 +31,9 @@ import { createAnatomy } from "./anatomy";
 import { architectureFor } from "./architecture";
 import { createPetalGeometry } from "./petalMesh";
 import { writeInstances } from "./place";
+import { INNER_KEYS, OUTER_KEYS } from "./shape";
+import { PRESETS } from "./presets";
+import { bloomState } from "./bloom";
 import type { PetalProfile } from "./presets";
 import type { FlowerSettings } from "./settings";
 
@@ -60,11 +65,11 @@ function kindFor(name: string): number {
 
 function widthScaleFor(name: string): number {
   switch (architectureFor(name).kind) {
-    case "dahlia": return 0.46;
+    case "dahlia": return 0.7;
     case "peony": return 0.88;
     case "chrysanthemum": return 0.9;
     case "rosette": return 0.92;
-    case "rose": return 0.9;
+    case "rose": return 1.15;
     case "passion": return 1;
     default: return 1;
   }
@@ -109,6 +114,12 @@ export type FlowerView = {
 
 export function createFlower(settings: FlowerSettings): FlowerView {
   const initialArchitecture = architectureFor(settings.name);
+  const innerCurve = INNER_KEYS.map((key) => numberUniform(settings[key]));
+  const outerCurve = OUTER_KEYS.map((key) => numberUniform(settings[key]));
+  const petalCup = numberUniform(settings.petalCup);
+  const rootOffset = numberUniform(0);
+  const spineOffset = numberUniform(0);
+  const tipOffset = numberUniform(0);
   const length = numberUniform(settings.length);
   const width = numberUniform(settings.width);
   const budDome = numberUniform(settings.budDome);
@@ -179,7 +190,8 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     const start = pow(float(1).sub(t), animationOrder);
     const jitter = hashA().sub(0.5).mul(animationJitter);
     const threshold = start.mul(animationSpread).add(jitter);
-    const linear = clamp(progress.sub(threshold).div(animationDuration), 0, 1);
+    const startAt = clamp(threshold, 0, 0.82);
+    const linear = clamp(progress.sub(startAt).div(float(1).sub(startAt).mul(animationDuration).max(0.05)), 0, 1);
     return smoothstep(0, 1, linear);
   });
 
@@ -215,16 +227,14 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     const next = position.toVar();
     const along = clamp(position.y.div(length), 0, 1);
     const bloom = smoothstep(0, 1, open);
-    const t = indexT();
+    const t = attribute("radialT", "float");
     const lengthFactor = mix(indexLengthMin, indexLengthMax, pow(t, indexLengthPower));
     const widthFactor = mix(indexWidthMin, indexWidthMax, pow(t, indexWidthPower));
     const variation = mix(float(1).sub(indexVariation.mul(0.3)), float(1).add(indexVariation.mul(0.3)), hashA());
     const scaleOpen = mix(float(0.76), float(1), bloom).mul(variation);
     const lengthOpen = lengthFactor;
     const widthOpen = max(float(0.001), widthFactor);
-    next.y.mulAssign(lengthOpen.mul(scaleOpen));
     next.x.mulAssign(widthOpen.mul(scaleOpen).mul(widthScale));
-    next.z.mulAssign(widthOpen.mul(scaleOpen));
 
     const signed = clamp(position.x.div(width.mul(0.5)), -1, 1);
     const signed2 = signed.mul(signed);
@@ -234,34 +244,66 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     const domeSine = max(sin(pow(along, 0.85).mul(pi)), float(0));
     const domeShape = pow(domeSine, domePower);
     const edgeFade = pow(max(float(0), float(1).sub(signed2)), edgePower);
-    next.z.addAssign(domeShape.mul(dome).mul(edgeFade).mul(widthOpen.mul(scaleOpen)));
-
-    const spineCurl = mix(budSpine, bloomSpine, bloom);
-    const tipWeight = pow(smoothstep(0.55, 1, along), 1.2);
-    const tipCurl = mix(budTip, bloomTip, bloom);
-    const local = spineCurl.mul(pow(along, 1.35)).add(tipCurl.mul(tipWeight));
-    const arc = clamp(local, -0.85, 0.85);
     const grown = length.mul(lengthOpen).mul(scaleOpen);
-    const curlBoost = mix(float(1), float(1.85), clamp(float(1).sub(abs(kind.sub(3))), 0, 1));
-    const lift = sin(along.mul(pi)).mul(arc).mul(grown).mul(0.28).mul(curlBoost);
-    next.z.addAssign(lift);
-    next.y.subAssign(abs(lift).mul(along).mul(0.28));
-    const chrysanthemum = clamp(float(1).sub(abs(kind.sub(3))), 0, 1);
-    const hookWeight = pow(smoothstep(0.64, 1, along), 2.2);
-    const tipHook = tipCurl.mul(hookWeight).mul(grown).mul(0.38).mul(chrysanthemum);
-    next.z.subAssign(tipHook);
-    next.y.subAssign(tipHook.mul(0.28));
-
-    const targetRoot = mix(rootInner, rootOuter, pow(t, rootPower));
-    const rootCurl = mix(budRoot.mul(0.18), targetRoot, bloom);
     const bend = mix(indexBendMin, indexBendMax, t).mul(bloom).mul(0.32);
-    next.assign(rotateX(next, rootCurl.add(bend)));
+    const chrysanthemum = clamp(float(1).sub(abs(kind.sub(3))), 0, 1);
+    const curveT = mix(t, pow(t, 3), chrysanthemum);
+    const coefficients = innerCurve.map((value, i) => mix(value, outerCurve[i]!, curveT));
+    const tangentAt = (s: TslNode): TslNode => {
+      const u = float(1).sub(s);
+      const openAngle = coefficients[0]!.mul(u.mul(u).mul(u))
+        .add(coefficients[1]!.mul(u.mul(u).mul(s)).mul(3))
+        .add(coefficients[2]!.mul(u.mul(s).mul(s)).mul(3))
+        .add(coefficients[3]!.mul(s.mul(s).mul(s)))
+        .add(rootOffset).add(spineOffset.mul(s)).add(tipOffset.mul(s.mul(s))).add(bend);
+      const closedAngle = budRoot.mul(0.65).add(budSpine.mul(s))
+        .sub(budTip.add(0.65).mul(s.mul(s)));
+      return mix(closedAngle, openAngle, bloom);
+    };
+    const radius = float(0).toVar();
+    const height = float(0).toVar();
+    for (let step = 0; step < 16; step++) {
+      const s = along.mul((step + 0.5) / 16);
+      const theta = tangentAt(s);
+      radius.addAssign(sin(theta).mul(along).div(16));
+      height.addAssign(cos(theta).mul(along).div(16));
+    }
+    const endAngle = tangentAt(along);
+    const cup = signed2.mul(width).mul(widthOpen).mul(petalCup).mul(0.42)
+      .mul(smoothstep(0, 0.25, along)).mul(sin(along.mul(pi)).max(0));
+    const domeLift = domeShape.mul(dome).mul(edgeFade).mul(widthOpen.mul(scaleOpen));
+    next.y.assign(height.mul(grown).add(cup.mul(sin(endAngle))));
+    next.z.assign(radius.mul(grown).sub(cup.mul(cos(endAngle))).add(domeLift));
+    // Rose petals wrap around the axis instead of intersecting as flat radial fans.
+    const isRose = clamp(float(1).sub(abs(kind.sub(7))), 0, 1);
+    const isPeony = clamp(float(1).sub(abs(kind.sub(1))), 0, 1);
+    const isDahlia = clamp(float(1).sub(abs(kind)), 0, 1);
+    const wrapWeight = isRose.add(isPeony.mul(0.9)).add(isDahlia.mul(0.75)).mul(bloom);
+    const attachment = attribute("attachmentRadius", "float");
+    const roseRadius = radius.mul(grown).add(attachment).max(0.06);
+    const wrapAngle = clamp(next.x.div(roseRadius), -1.5, 1.5);
+    const wrappedX = sin(wrapAngle).mul(roseRadius);
+    const wrappedZ = cos(wrapAngle).mul(roseRadius).sub(attachment);
+    next.x.assign(mix(next.x, wrappedX, wrapWeight));
+    next.z.assign(mix(next.z, wrappedZ, wrapWeight));
+    next.z.subAssign(attribute("attachmentRadius", "float").mul(float(1).sub(bloom)).mul(0.8));
+    // Nested closed shells meet at the bud tip instead of crossing through the axis.
+    const closedRadius = sin(along.mul(pi)).max(0).mul(length).mul(0.38).mul(budRoot.mul(0.15).add(1))
+      .mul(mix(0.8, 1, t)).add(float(1).sub(along).mul(attachment).mul(0.2));
+    const closedWrap = clamp(position.x.div(closedRadius.add(0.1)), -1.3, 1.3);
+    const closedX = sin(closedWrap).mul(closedRadius);
+    const closedZ = cos(closedWrap).mul(closedRadius).sub(attachment);
+    const closedY = along.mul(length.mul(0.94).sub(attribute("attachmentHeight", "float")));
+    const closedWeight = float(1).sub(bloom).mul(float(1).sub(clamp(float(1).sub(abs(kind.sub(2))), 0, 1)));
+    next.x.assign(mix(next.x, closedX, closedWeight));
+    next.y.assign(mix(next.y, closedY, closedWeight));
+    next.z.assign(mix(next.z, closedZ, closedWeight));
 
     const twist = mix(indexTwist.mul(-1), indexTwist, hashB()).mul(along).mul(bloom);
     const cosine = cos(twist);
     const sine = sin(twist);
-    const twistedX = next.x;
-    const twistedZ = next.z;
+    const twistedX = next.x.toVar();
+    const twistedZ = next.z.toVar();
     next.x.assign(twistedX.mul(cosine).add(twistedZ.mul(sine)));
     next.z.assign(twistedZ.mul(cosine).sub(twistedX.mul(sine)));
 
@@ -273,6 +315,13 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     next.y.mulAssign(mix(0.86, 1, bloom));
     next.x.mulAssign(mix(0.9, 1, bloom));
     next.z.mulAssign(mix(0.9, 1, bloom));
+    const orchid = clamp(float(1).sub(abs(kind.sub(2))), 0, 1);
+    const phi = instanceIndex.toFloat().mul(Math.PI * 2).div(instanceCount.max(1));
+    const orchidBudWorld = vec3(sin(phi).mul(closedRadius), along.mul(length).mul(0.94), cos(phi).mul(closedRadius))
+      .sub(attribute("petalOffset", "vec3"));
+    const orchidBudLocal = rotateX(rotateZ(orchidBudWorld, attribute("tepalAngle", "float").negate()), float(0.95))
+      .div(attribute("petalScale", "vec3").max(0.05));
+    next.assign(mix(next, orchidBudLocal, orchid.mul(float(1).sub(bloom))));
     const wind = sin(swayTime.mul(1.15).add(hashA().mul(1.8)))
       .mul(swayStrength)
       .mul(pow(along, 1.7))
@@ -356,6 +405,7 @@ export function createFlower(settings: FlowerSettings): FlowerView {
 
   const material = new MeshPhysicalNodeMaterial();
   material.positionNode = origin;
+  material.normalNode = normalFlat;
   material.colorNode = shaded;
   material.emissiveNode = emissiveNode;
   material.roughnessNode = clamp(roughness.add(fiber.mul(0.5).add(0.5).mul(0.035)), 0.08, 1);
@@ -380,13 +430,27 @@ export function createFlower(settings: FlowerSettings): FlowerView {
   petals.receiveShadow = false;
   const anatomy = createAnatomy(settings);
   const group = new Group();
-  group.add(petals, anatomy.group);
+  const petalHead = new Group();
+  petalHead.add(petals);
+  group.add(petalHead, anatomy.group);
 
   const syncUniforms = (): void => {
     const architecture = architectureFor(settings.name);
-    group.rotation.set(architecture.kind === "orchid" ? -0.42 : 0, architecture.kind === "orchid" ? 0.16 : 0, 0);
+    for (let i = 0; i < 4; i++) {
+      innerCurve[i]!.value = settings[INNER_KEYS[i]!];
+      outerCurve[i]!.value = settings[OUTER_KEYS[i]!];
+    }
+    petalCup.value = settings.petalCup;
+    const reference = PRESETS.find((preset) => preset.name === settings.name)!;
+    rootOffset.value = settings.bloomRoot - reference.bloomRoot;
+    spineOffset.value = settings.bloomSpine - reference.bloomSpine;
+    tipOffset.value = settings.bloomTip - reference.bloomTip;
+    group.rotation.set(0, 0, 0);
     petals.visible = true;
-    anatomy.setBloom(settings.animation / 10);
+    const state = bloomState(settings.animation / 10, settings.closedScale);
+    anatomy.setBloom(state.open);
+    petalHead.scale.setScalar(state.scale);
+    anatomy.head.scale.setScalar(state.scale);
     length.value = settings.length;
     width.value = settings.width;
     budDome.value = settings.budDome;
@@ -394,7 +458,7 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     budDomePower.value = settings.budDomePower;
     bloomDomePower.value = settings.bloomDomePower;
     instanceCount.value = settings.instanceCount;
-    animation.value = settings.animation;
+    animation.value = state.open * 10;
     budRoot.value = settings.budRoot;
     budSpine.value = settings.budSpine;
     budTip.value = settings.budTip;
@@ -455,6 +519,7 @@ export function createFlower(settings: FlowerSettings): FlowerView {
   const rebuildPetal = (): void => {
     const previous = petals.geometry;
     petals.geometry = createPetalGeometry(settings);
+    writeInstances(petals, settings);
     previous.dispose();
     anatomy.rebuild();
   };

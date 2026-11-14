@@ -62,7 +62,7 @@ window.addEventListener("flower-reset-view", () => {
   studyView = null;
 });
 
-type StudyView = "front" | "left" | "right" | "top" | "threeQuarter";
+type StudyView = "front" | "left" | "right" | "top" | "threeQuarter" | "underneath";
 type StudyCommand = StudyView | "home";
 
 let studyView: StudyView | null = null;
@@ -103,13 +103,17 @@ function placeStudyView(view: StudyView): void {
       y = distance * 0.7;
       z = distance * 0.5;
       break;
+    case "underneath":
+      y = -distance * 0.45;
+      z = distance * 0.85;
+      break;
     default: {
       const unreachable: never = view;
       throw new Error(unreachable);
     }
   }
   ortho.position.set(x, y, z);
-  ortho.lookAt(-0.45, focusY, 0);
+  ortho.lookAt(0, focusY, 0);
 }
 
 function snapFlowerView(view: StudyCommand): void {
@@ -123,6 +127,7 @@ function snapFlowerView(view: StudyCommand): void {
     case "right":
     case "top":
     case "threeQuarter":
+    case "underneath":
       studyView = view;
       return;
     default: {
@@ -158,8 +163,13 @@ const panel = createPanel(settings, flower, setBackdrop);
 
 let motionTime = 0;
 let last = performance.now();
+let previousMode: MotionMode = settings.motionMode;
 
 function applyMotion(mode: MotionMode, dt: number): void {
+  if (mode === "bloom" && previousMode !== "bloom") {
+    motionTime = Math.PI - Math.asin(Math.max(-1, Math.min(1, settings.animation / 5 - 1)));
+  }
+  previousMode = mode;
   controls.autoRotate = mode === "rotate";
   if (mode !== "off") motionTime += dt * (mode === "bloom" ? 0.55 : 1);
   flowerGroup.rotation.y = mode === "sway" ? Math.sin(motionTime * 0.52) * 0.12 : 0;

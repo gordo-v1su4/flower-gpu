@@ -44,7 +44,7 @@ declare module "three/webgpu" {
   }
 
   export class BufferGeometry {
-    setAttribute(name: string, attribute: Float32BufferAttribute): this;
+    setAttribute(name: string, attribute: Float32BufferAttribute | InterleavedBufferAttribute): this;
     setIndex(index: number[]): this;
     computeVertexNormals(): void;
     dispose(): void;
@@ -69,9 +69,12 @@ declare module "three/webgpu" {
   export class QuadraticBezierCurve3 {
     constructor(v0: Vector3, v1: Vector3, v2: Vector3);
   }
+  export class CatmullRomCurve3 {
+    constructor(points: Vector3[]);
+  }
 
   export class TubeGeometry extends BufferGeometry {
-    constructor(path: QuadraticBezierCurve3, tubularSegments?: number, radius?: number, radialSegments?: number, closed?: boolean);
+    constructor(path: QuadraticBezierCurve3 | CatmullRomCurve3, tubularSegments?: number, radius?: number, radialSegments?: number, closed?: boolean);
   }
 
   export class LatheGeometry extends BufferGeometry {
@@ -80,6 +83,17 @@ declare module "three/webgpu" {
 
   export class Float32BufferAttribute {
     constructor(array: number[], itemSize: number);
+  }
+  export class InstancedBufferAttribute extends Float32BufferAttribute {
+    constructor(array: Float32Array, itemSize: number);
+  }
+  export class InstancedInterleavedBuffer {
+    constructor(array: Float32Array, stride: number);
+    array: Float32Array;
+    needsUpdate: boolean;
+  }
+  export class InterleavedBufferAttribute {
+    constructor(buffer: InstancedInterleavedBuffer, itemSize: number, offset: number);
   }
 
   export class Object3D {
@@ -238,6 +252,8 @@ declare module "three/tsl" {
   export const positionGeometry: Tsl;
   export const positionLocal: Tsl;
   export const normalLocal: Tsl;
+  export const normalFlat: Tsl;
+  export function attribute(name: string, type: string): Tsl;
   export const instanceIndex: Tsl;
   export function abs(value: unknown): Tsl;
   export function sin(value: unknown): Tsl;

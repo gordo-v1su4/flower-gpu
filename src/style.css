@@ -278,6 +278,19 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   backdrop-filter: blur(18px);
 }
 .panel-hidden .lil-gui { display: none; }
+.curve-editor { padding: 14px 10px; border-bottom: 1px solid #343333; color: var(--ui-pink); }
+.curve-editor label { display: block; margin-bottom: 9px; font-size: 12px; }
+.curve-editor select { width: 100%; padding: 5px; margin-bottom: 8px; border: 1px solid #494047; }
+.curve-editor svg { display: block; width: 100%; height: auto; fill: none; stroke: none; }
+.curve-editor .curve-grid { stroke: #343c36; stroke-width: 1; }
+.curve-editor .curve-handles { stroke: #7f606c; stroke-dasharray: 3 4; stroke-width: 1; }
+.curve-editor .curve-line { stroke: var(--ui-pink-bright); stroke-width: 2; }
+.curve-editor circle { fill: #20171c; stroke: var(--ui-pink-bright); stroke-width: 2; cursor: ns-resize; touch-action: none; }
+.curve-editor circle:focus { fill: var(--ui-pink-hot); outline: none; stroke: #fff; }
+.curve-editor text { fill: #b7b5ae; font: 9px "Segoe UI", sans-serif; }
+.curve-editor p { font-size: 10px; line-height: 1.5; color: #acb4aa; margin: 8px 0; }
+.curve-editor button { padding: 6px 8px; width: 100%; color: var(--ui-pink); background: #29232a; border: 1px solid #494047; cursor: pointer; }
+.lil-gui .lil-children { max-height: calc(100vh - 130px); overflow-y: auto; }
 .lil-gui .lil-title { letter-spacing: 0.06em; text-transform: uppercase; font-size: 9px; }
 .lil-gui.root > .lil-title, .lil-gui.lil-root > .lil-title { text-transform: none; letter-spacing: 0.08em; font-size: 12px; }
 .lil-gui input, .lil-gui select, .lil-gui option { color-scheme: dark; background: #252d28; color: var(--ui-pink-bright); }

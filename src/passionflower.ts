@@ -1,5 +1,6 @@
 import {
   BoxGeometry,
+  CatmullRomCurve3,
   CylinderGeometry,
   Euler,
   Group,
@@ -41,26 +42,29 @@ function coronaRing(
   thickness: number,
   color: string,
   offset: number,
-): InstancedMesh {
-  const curve = new QuadraticBezierCurve3(
-    new Vector3(0, 0, 0),
-    new Vector3(0, lift * 1.7 + 0.04, length * 0.48),
-    new Vector3(0, lift, length),
-  );
-  const geometry = new TubeGeometry(curve, 9, thickness, 5, false);
+): { mesh: InstancedMesh; setBloom: (open: number) => void } {
+  const curve = new CatmullRomCurve3(Array.from({length: 17}, (_, i) => {
+    const t = i / 16;
+    return new Vector3(Math.sin(t * 24) * t * t * 0.026, lift * Math.sin(t * Math.PI * 0.7) + Math.sin(t * 20) * t * t * 0.014, length * t);
+  }));
+  const geometry = new TubeGeometry(curve, 24, thickness, 5, false);
   const mesh = new InstancedMesh(geometry, material(color, 0.5), count);
+  const setBloom = (open: number): void => {
   for (let index = 0; index < count; index += 1) {
     const angle = offset + index / count * Math.PI * 2;
     const variation = Math.sin(index * 17.17) * 0.5 + 0.5;
-    position.set(Math.sin(angle) * radius, 0.09, Math.cos(angle) * radius);
-    quaternion.setFromEuler(euler.set(0, angle, 0));
+    const attachment = radius * (0.25 + 0.75 * open);
+    position.set(Math.sin(angle) * attachment, 0.09, Math.cos(angle) * attachment);
+    quaternion.setFromEuler(euler.set(-(1 - open) * 1.45, angle, 0, "YXZ"));
     scale.set(1, 0.85 + variation * 0.3, 0.88 + variation * 0.2);
     matrix.compose(position, quaternion, scale);
     mesh.setMatrixAt(index, matrix);
   }
   mesh.instanceMatrix.needsUpdate = true;
+  };
+  setBloom(1);
   mesh.frustumCulled = false;
-  return mesh;
+  return {mesh, setBloom};
 }
 
 function linkedCylinder(
@@ -79,11 +83,12 @@ function linkedCylinder(
 export function createPassionAnatomy(): PassionAnatomy {
   const group = new Group();
   const corona = new Group();
-  corona.add(
+  const rings = [
     coronaRing(72, 0.2, 1.02, 0.025, 0.008, "#39227f", 0),
     coronaRing(64, 0.17, 0.82, 0.1, 0.009, "#dad9ff", 0.035),
     coronaRing(56, 0.14, 0.62, 0.18, 0.01, "#7443a6", 0.07),
-  );
+  ];
+  corona.add(...rings.map((ring) => ring.mesh));
   group.add(corona);
 
   const center = new Group();
@@ -129,9 +134,10 @@ export function createPassionAnatomy(): PassionAnatomy {
   return {
     group,
     setBloom(value) {
-      const opened = 0.82 + value * 0.18;
-      corona.scale.setScalar(opened);
-      center.position.y = (1 - value) * -0.08;
+      const opened = Math.max(0, Math.min(1, value));
+      for (const ring of rings) ring.setBloom(opened);
+      center.scale.setScalar(0.12 + opened * 0.88);
+      center.position.y = (1 - opened) * 0.08;
     },
     setSway(time, strength) {
       corona.rotation.z = Math.sin(time * 1.1) * strength * 0.018;

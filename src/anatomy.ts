@@ -17,6 +17,7 @@ import type { FlowerSettings } from "./settings";
 
 export type FlowerAnatomy = {
   group: Group;
+  head: Group;
   update: () => void;
   rebuild: () => void;
   setBloom: (value: number) => void;
@@ -64,6 +65,8 @@ function createPeonyStamens(): Group {
 
 export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   const group = new Group();
+  const head = new Group();
+  group.add(head);
   const stemMaterial = solid("#274f3b", 0.82);
   const leafMaterial = solid("#356a48", 0.72);
   leafMaterial.side = DoubleSide;
@@ -84,6 +87,20 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   const stem = new Mesh(new CylinderGeometry(0.026, 0.042, 2.7, 12), stemMaterial);
   stem.position.y = -1.35;
   group.add(stem);
+
+  const calyx = new Mesh(new SphereGeometry(0.2, 24, 12), stemMaterial);
+  calyx.position.y = -0.035;
+  calyx.scale.set(1, 0.48, 1);
+  head.add(calyx);
+  const sepals = new Group();
+  const sepalGeometry = createPetalGeometry({...settings, petalProfile: "pointed", length: 0.48, width: 0.22, baseWidth: 0.7, tipWidth: 0.12, bloomRootRoundness: 0.2});
+  for (let i = 0; i < 5; i++) {
+    const sepal = new Mesh(sepalGeometry, leafMaterial);
+    sepal.position.y = -0.035;
+    sepal.rotation.set(1.9, i * Math.PI * 2 / 5, 0, "YXZ");
+    sepals.add(sepal);
+  }
+  head.add(sepals);
 
   const leafSettings: FlowerSettings = {
     ...settings,
@@ -108,7 +125,7 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   const center = new Mesh(new SphereGeometry(0.2, 32, 18), centerMaterial);
   center.scale.set(1, 0.46, 1);
   center.position.y = 0.075;
-  group.add(center);
+  head.add(center);
 
   const stamens = new Group();
   for (let index = 0; index < 6; index += 1) {
@@ -122,23 +139,23 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
     anther.rotation.y = angle;
     stamens.add(filament, anther);
   }
-  group.add(stamens);
+  head.add(stamens);
 
   const peonyStamens = createPeonyStamens();
-  group.add(peonyStamens);
+  head.add(peonyStamens);
   const passion = createPassionAnatomy();
-  group.add(passion.group);
+  head.add(passion.group);
 
   const column = new Mesh(new SphereGeometry(0.14, 24, 16), filamentMaterial);
-  column.scale.set(0.75, 1.35, 0.8);
+  column.scale.set(0.5, 0.8, 0.6);
   column.position.set(0, 0.22, 0.36);
-  group.add(column);
+  head.add(column);
 
   let lipGeometry = createPetalGeometry({
     ...settings,
     petalProfile: "ruffled",
-    length: 0.86,
-    width: 1.08,
+    length: 0.48,
+    width: 0.62,
     baseWidth: 0.18,
     tipWidth: 0.96,
     bloomRootRoundness: 0.72,
@@ -148,10 +165,12 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   lip.position.set(0, 0.12, 0.34);
   lip.rotation.set(0.2, 0, Math.PI);
   lip.scale.setScalar(0.9);
-  group.add(lip);
+  head.add(lip);
 
   const update = (): void => {
     const architecture = architectureFor(settings.name);
+    calyx.visible = architecture.kind !== "rosette" && architecture.kind !== "orchid";
+    sepals.visible = architecture.kind !== "rosette" && architecture.kind !== "orchid";
     centerMaterial.color.set(settings.materialColorBottom);
     lipBottom.value.set(settings.materialTipColor);
     lipTop.value.set(settings.materialColorTop);
@@ -175,8 +194,8 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
     lipGeometry = createPetalGeometry({
       ...settings,
       petalProfile: "ruffled",
-      length: 0.86,
-      width: 1.08,
+      length: 0.48,
+      width: 0.62,
       baseWidth: 0.18,
       tipWidth: 0.96,
       bloomRootRoundness: 0.72,
@@ -191,6 +210,12 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
 
   const setBloom = (value: number): void => {
     passion.setBloom(value);
+    const open = Math.max(0, Math.min(1, value));
+    stamens.scale.setScalar(0.15 + open * 0.85);
+    peonyStamens.scale.setScalar(0.1 + open * 0.9);
+    column.scale.set(0.5 * (0.2 + open * 0.8), 0.8 * (0.2 + open * 0.8), 0.6 * (0.2 + open * 0.8));
+    lip.scale.setScalar(0.12 + open * 0.78);
+    lip.rotation.x = 0.2 - (1 - open) * 1.25;
   };
   const setSway = (time: number, strength: number): void => {
     passion.setSway(time, strength);
@@ -206,5 +231,5 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   };
 
   update();
-  return { group, update, rebuild, setBloom, setSway, setWireframe };
+  return { group, head, update, rebuild, setBloom, setSway, setWireframe };
 }

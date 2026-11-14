@@ -87,9 +87,11 @@ export function createPetalGeometry(settings: FlowerSettings): BufferGeometry {
     const along = row / (rows - 1);
     const y = along * settings.length;
     const neck = MathUtils.smoothstep(along, 0.0, 0.36);
-    const gathered = MathUtils.lerp(0.06, 1, neck);
+    const gathered = profile === "rose"
+      ? MathUtils.lerp(0.32, 1, MathUtils.smoothstep(along, 0, 0.18))
+      : MathUtils.lerp(0.12, 1, neck);
     const base = MathUtils.lerp(settings.baseWidth, 1, MathUtils.smoothstep(along, 0.04, 0.28));
-    const tip = MathUtils.lerp(settings.tipWidth, 1, MathUtils.smoothstep(along, 0.75, 1));
+    const tip = MathUtils.lerp(1, settings.tipWidth, MathUtils.smoothstep(along, 0.75, 1));
     const halfWidth = Math.max(
       settings.width * 0.0015,
       settings.width * 0.5 * outline(profile, along) * base * gathered * tip,

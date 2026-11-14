@@ -32,4 +32,8 @@ After geometry review, audition surface textures and WebGPU procedural materials
 
 ## Implementation status
 
-This document records the design discussion. Geometry and editor implementation has not started; the scope awaits the user's final shared-understanding confirmation under the grill-with-docs workflow.
+The user approved implementation. The current checkpoint includes independent petal-curve and radial-height editors, species-specific shape defaults, orthographic inspection views, and staged bloom movement with head scaling around its base. User-supplied references are saved under `references/user-2026-11-14/`.
+
+The rose profile and leaves received positive visual feedback. Other species still need shape refinement; conspicuous petal intersections, orchid closure, and passionflower filament clearance remain unresolved. Spacing adjustments are heuristic, not a collision solver. Passing math tests and a production build do not establish visual acceptance.
+
+The subsequent architecture review recommends retaining Three.js WebGPURenderer while evaluating richer editable petal surfaces, explicit attachment geometry, and collision-aware bloom poses. Native WGSL functions can be integrated where useful; changing shader language alone does not correct the geometry. This is a proposed next direction, not an implemented collision or surface pipeline.
