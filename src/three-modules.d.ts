@@ -111,6 +111,7 @@ declare module "three/webgpu" {
     scale: Vector3;
     visible: boolean;
     add(...objects: unknown[]): this;
+    remove(...objects: unknown[]): this;
     traverse(callback: (object: unknown) => void): void;
   }
 
@@ -122,6 +123,7 @@ declare module "three/webgpu" {
   }
 
   export class MeshPhysicalNodeMaterial {
+    dispose(): void;
     constructor(parameters?: { color?: string | number; roughness?: number; metalness?: number; side?: number });
     color: Color;
     roughness: number;

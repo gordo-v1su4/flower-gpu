@@ -14,7 +14,7 @@ import {
   WebGPURenderer,
 } from "three/webgpu";
 import type { MotionMode } from "./settings";
-import { createFlower } from "./flowerMaterial";
+import { createSpecimens } from "./specimens";
 import { createPanel } from "./gui";
 import { createSettings } from "./settings";
 
@@ -146,7 +146,8 @@ declare global {
 fitOrtho();
 window.snapFlowerView = snapFlowerView;
 
-const flower = createFlower(settings);
+const specimens = createSpecimens(settings);
+const flower = specimens.view;
 const flowerGroup = new Group();
 flowerGroup.add(flower.mesh);
 scene.add(flowerGroup);
@@ -159,7 +160,7 @@ const warm = new DirectionalLight(0xffe6ce, 0.8);
 warm.position.set(2, 3, -5);
 scene.add(warm);
 
-const panel = createPanel(settings, flower, setBackdrop);
+const panel = createPanel(settings, flower, setBackdrop, specimens.select);
 
 let motionTime = 0;
 let last = performance.now();

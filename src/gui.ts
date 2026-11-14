@@ -1,10 +1,9 @@
 import GUI, { type Controller } from "lil-gui";
-import { Color } from "three/webgpu";
-import { PRESETS, type FlowerPreset } from "./presets";
-import { assignPreset, type FlowerSettings, type MotionMode } from "./settings";
+import { PRESETS } from "./presets";
+import { type FlowerSettings, type MotionMode } from "./settings";
 import type { FlowerView } from "./flowerMaterial";
 import { createCurveEditor } from "./curveEditor";
-import { shapeFor, type ShapeSettings } from "./shape";
+
 
 type RefreshKind = "mesh" | "instances" | "material" | "uniform";
 type BackdropName = "black" | "gray";
@@ -19,7 +18,6 @@ type Choice = {
   row: HTMLElement;
 };
 
-const PRESET_MS = 900;
 const DESCRIPTIONS: Record<string, string> = {
   VelvetDahlia: "Narrow velvet petals unfold through seven staggered, golden-angle whorls.",
   SoftPeony: "Broad, cupped pink ruffles surround an open cluster of golden stamens.",
@@ -36,10 +34,10 @@ export function createPanel(
   settings: FlowerSettings,
   flower: FlowerView,
   setBackdrop: (tone: BackdropName) => void,
+  selectSpecimen: (name: string) => void,
 ): Panel {
   const controllers: Controller[] = [];
   const curveEditors: ReturnType<typeof createCurveEditor>[] = [];
-  const editedShapes = new Map<string, ShapeSettings>();
   const presetNames = PRESETS.map((preset) => preset.name);
   const selection = { preset: presetNames[0] ?? "VelvetDahlia" };
   const presetRows: Choice[] = [];
@@ -63,12 +61,6 @@ export function createPanel(
     }
   };
   let backdrop: BackdropName = "black";
-  let blend: {
-    name: string;
-    target: FlowerPreset;
-    start: Record<string, number | string>;
-    startTime: number;
-  } | null = null;
 
   const track = (controller: Controller, kind: RefreshKind, key?: keyof FlowerSettings): Controller => {
     controller.onChange(() => {
@@ -104,11 +96,6 @@ export function createPanel(
     if (typeof settings[key] === "number" || typeof settings[key] === "boolean") flower.syncUniforms();
   };
 
-  const writeSetting = (key: keyof FlowerSettings, value: FlowerSettings[keyof FlowerSettings]): void => {
-    const record: Record<string, FlowerSettings[keyof FlowerSettings]> = settings;
-    record[key] = value;
-  };
-
   const refresh = (): void => {
     for (const controller of controllers) controller.updateDisplay();
     for (const editor of curveEditors) editor.refresh();
@@ -118,14 +105,8 @@ export function createPanel(
   const finishPreset = (name: string): void => {
     const preset = PRESETS.find((entry) => entry.name === name);
     if (!preset) return;
-    assignPreset(settings, preset);
-    Object.assign(settings, editedShapes.get(name) ?? {});
+    selectSpecimen(name);
     selection.preset = name;
-    flower.syncUniforms();
-    flower.updateMaterial();
-    flower.rebuildPetal();
-    flower.updateInstances();
-    flower.setWireframe(settings.wireframe);
     refresh();
     markChoices();
     paintAccent();
@@ -152,68 +133,8 @@ export function createPanel(
     markChoices();
   };
 
-  const startPreset = (name: string): void => {
-    const preset = PRESETS.find((entry) => entry.name === name);
-    if (!preset) return;
-    if (!blend) editedShapes.set(settings.name, Object.fromEntries(Object.keys(shapeFor(settings.name)).map((key) => [key, settings[key as keyof ShapeSettings]])) as ShapeSettings);
-    selection.preset = name;
-    markChoices();
-    const start: Record<string, number | string> = {};
-    for (const key of Object.keys(preset) as (keyof FlowerPreset)[]) {
-      if (key === "name") continue;
-      const next = preset[key];
-      const current = settings[key];
-      const numeric = typeof next === "number" && typeof current === "number";
-      const color = typeof next === "string" && typeof current === "string" && next.startsWith("#") && current.startsWith("#");
-      if ((numeric || color) && (typeof current === "number" || typeof current === "string")) start[key] = current;
-    }
-    blend = { name, target: preset, start, startTime: performance.now() };
-    document.body.dataset.transitioning = "true";
-  };
-
-  const tickPreset = (now: number): void => {
-    if (!blend) return;
-    const { name, target, start, startTime } = blend;
-    const progress = Math.min(Math.max((now - startTime) / PRESET_MS, 0), 1);
-    const eased = progress * progress * (3 - 2 * progress);
-    let rebuild = false;
-    let instances = false;
-    let material = false;
-    for (const key of Object.keys(target) as (keyof FlowerPreset)[]) {
-      if (key === "name") continue;
-      const next = target[key];
-      const current = settings[key];
-      if (typeof next === "number" && typeof current === "number") {
-        const from = typeof start[key] === "number" ? start[key] : current;
-        writeSetting(key, from + (next - from) * eased);
-        if (key.startsWith("material")) material = true;
-        else if (movesInstances(key)) instances = true;
-        else rebuild = true;
-        continue;
-      }
-      if (typeof next === "string" && typeof current === "string" && next.startsWith("#") && current.startsWith("#")) {
-        const from = new Color(typeof start[key] === "string" ? start[key] : current);
-        from.lerp(new Color(next), eased);
-        writeSetting(key, `#${from.getHexString()}`);
-        material = true;
-        continue;
-      }
-      if (typeof next === "string" && typeof current === "string" && current !== next) {
-        writeSetting(key, next);
-        rebuild = true;
-      }
-    }
-    flower.syncUniforms();
-    if (rebuild) flower.rebuildPetal();
-    if (instances) flower.updateInstances();
-    if (material) flower.updateMaterial();
-    refresh();
-    paintAccent();
-    if (progress >= 1) {
-      finishPreset(name);
-      blend = null;
-    }
-  };
+  const startPreset = (name: string): void => { finishPreset(name); };
+  const tickPreset = (_now: number): void => {};
 
   const stepPreset = (direction: 1 | -1): void => {
     const index = presetNames.indexOf(selection.preset);
@@ -554,11 +475,3 @@ function presetLabel(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
-function movesInstances(key: string): boolean {
-  return key.startsWith("index")
-    || key.startsWith("phyllotaxis")
-    || key.startsWith("collision")
-    || key.includes("Jitter")
-    || key.includes("Spacing")
-    || key.includes("Radius");
-}
