@@ -153,6 +153,10 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   font-weight: 400;
   letter-spacing: -0.035em;
 }
+#flower-name[data-preset="GardenChrysanthemum"] {
+  font-size: clamp(18px, 7vw, 30px);
+  white-space: nowrap;
+}
 #flower-description { margin: 16px 0 18px; max-width: 340px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .render-detail { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--ink); font-size: 9px; letter-spacing: 0.13em; }
 .render-detail > span:first-child { width: 5px; height: 5px; border-radius: 50%; background: #7ea889; box-shadow: 0 0 10px rgba(126, 168, 137, 0.5); }

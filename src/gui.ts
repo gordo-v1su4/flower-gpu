@@ -47,7 +47,10 @@ export function createPanel(
   const countOutput = document.querySelector<HTMLElement>("#petal-count");
   const updateInterface = (): void => {
     const presetIndex = Math.max(0, presetNames.indexOf(selection.preset));
-    if (nameOutput) nameOutput.textContent = presetLabel(selection.preset);
+    if (nameOutput) {
+      nameOutput.textContent = presetLabel(selection.preset);
+      nameOutput.dataset.preset = selection.preset;
+    }
     if (indexOutput) indexOutput.textContent = String(presetIndex + 1).padStart(2, "0");
     if (descriptionOutput) descriptionOutput.textContent = DESCRIPTIONS[selection.preset] ?? "A procedural botanical specimen.";
     if (countOutput) countOutput.textContent = String(Math.round(settings.instanceCount));
