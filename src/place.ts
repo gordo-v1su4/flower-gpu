@@ -55,13 +55,22 @@ export function writeInstances(mesh: InstancedMesh, settings: FlowerSettings): n
         + alternatingLift
         + heightJitter
         + (hash(index, 4) - 0.5) * settings.indexYSpacing;
+      if (architecture.kind === "chrysanthemum") {
+        y = settings.indexYOffset
+          + architecture.layerHeight * Math.pow(1 - ringT, 0.72)
+          + alternatingLift
+          + heightJitter
+          + randomHeight * (0.14 + ringT * 0.2)
+          + Math.sin(ringT * Math.PI) * 0.14
+          + Math.pow(ringT, 1.4) * 0.08;
+      }
       let yaw = angle;
       let roll = (hash(index, 7) * 2 - 1) * settings.indexTwist * 0.24
         + randomHeight * settings.petalRandomness * 0.1;
 
       if (architecture.kind === "rose") {
         radius = Math.max(0.008, 0.018 + 0.19 * Math.pow(globalT, 0.75) + jitter * 0.2);
-        y = settings.indexYOffset + 0.5 * Math.pow(1 - globalT, 1.35) + heightJitter * 0.25;
+        y = settings.indexYOffset + architecture.layerHeight * Math.pow(1 - globalT, 1.2) + heightJitter * 0.8;
         yaw = angle + 0.74 - globalT * 0.28;
         roll *= 0.35;
       } else if (architecture.kind === "rosette") {

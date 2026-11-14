@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "graft": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "--no-install",
+        "graft",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

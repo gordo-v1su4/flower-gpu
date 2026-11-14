@@ -3,3 +3,9 @@ dist
 evidence
 *.tsbuildinfo
 .DS_Store
+__pycache__/
+*.pyc
+*.log
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

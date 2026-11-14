@@ -45,7 +45,7 @@ function createPeonyStamens(): Group {
   for (let index = 0; index < count; index += 1) {
     const angle = index * 2.399963229728653;
     const radius = 0.035 + 0.22 * Math.sqrt((index + 0.5) / count);
-    const height = 0.22 + (1 - radius / 0.28) * 0.12 + Math.sin(index * 7.31) * 0.018;
+    const height = 0.68 + (1 - radius / 0.28) * 0.14 + Math.sin(index * 7.31) * 0.018;
     dummy.position.set(Math.sin(angle) * radius, 0.16 + height * 0.5, Math.cos(angle) * radius);
     dummy.rotation.set(Math.cos(angle) * 0.13, angle, -Math.sin(angle) * 0.13);
     dummy.scale.set(1, height / 0.2, 1);

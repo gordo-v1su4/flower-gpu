@@ -22,7 +22,7 @@ const DESCRIPTIONS: Record<string, string> = {
   VelvetDahlia: "Narrow velvet petals unfold through seven staggered, golden-angle whorls.",
   SoftPeony: "Broad, cupped pink ruffles surround an open cluster of golden stamens.",
   WildOrchid: "Five sculpted tepals surround a golden-throated lip and a pale central column.",
-  GardenChrysanthemum: "Broad spoon-shaped orange petals curl into dense, rounded layers.",
+  GardenChrysanthemum: "Slender, curling petals rise through a tall, densely layered center.",
   SunburstDahlia: "Pointed golden petals radiate in precise layers with warm, luminous edges.",
   StoneRosette: "Waxy spoon-shaped leaves spiral into a compact botanical rosette.",
   StargazerLily: "Six speckled, recurved tepals frame a crown of pollen-rich stamens.",

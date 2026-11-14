@@ -33,8 +33,8 @@ const ARCHITECTURES: Record<string, FlowerArchitecture> = {
   },
   SoftPeony: {
     kind: "peony", rings: 4, weights: COMPOSITE_WEIGHTS,
-    rootInner: 0.42, rootOuter: 0.98, rootPower: 0.7,
-    radialSpread: 0.18, layerHeight: 0.16, ringGap: 0.014, angleOffset: 0.32, centerScale: 0.26,
+    rootInner: 0.42, rootOuter: 0.92, rootPower: 0.7,
+    radialSpread: 0.18, layerHeight: 0.68, ringGap: 0.014, angleOffset: 0.32, centerScale: 0.26,
   },
   WildOrchid: {
     kind: "orchid", rings: 1, weights: [1],
@@ -43,13 +43,13 @@ const ARCHITECTURES: Record<string, FlowerArchitecture> = {
   },
   GardenChrysanthemum: {
     kind: "chrysanthemum", rings: 9, weights: DENSE_WEIGHTS,
-    rootInner: 0.1, rootOuter: 1.02, rootPower: 0.8,
-    radialSpread: 0.16, layerHeight: 0.4, ringGap: 0.012, angleOffset: 0, centerScale: 0.25,
+    rootInner: 0.08, rootOuter: 1.48, rootPower: 0.76,
+    radialSpread: 0.14, layerHeight: 1.25, ringGap: 0.012, angleOffset: 0, centerScale: 0.25,
   },
   SunburstDahlia: {
     kind: "dahlia", rings: 7, weights: COMPOSITE_WEIGHTS,
-    rootInner: 0.22, rootOuter: 1.18, rootPower: 0.82,
-    radialSpread: 0.16, layerHeight: 0.4, ringGap: 0.016, angleOffset: 0.2, centerScale: 0.4,
+    rootInner: 0.22, rootOuter: 1, rootPower: 0.82,
+    radialSpread: 0.16, layerHeight: 0.82, ringGap: 0.016, angleOffset: 0.2, centerScale: 0.4,
   },
   StoneRosette: {
     kind: "rosette", rings: 5, weights: [0.55, 0.72, 0.9, 1.08, 1.2],
@@ -68,8 +68,8 @@ const ARCHITECTURES: Record<string, FlowerArchitecture> = {
   },
   CopperRose: {
     kind: "rose", rings: 7, weights: COMPOSITE_WEIGHTS,
-    rootInner: 0.03, rootOuter: 0.88, rootPower: 0.62,
-    radialSpread: 0.06, layerHeight: 0.58, ringGap: 0.008, angleOffset: 0.4, centerScale: 0,
+    rootInner: 0.03, rootOuter: 0.56, rootPower: 0.62,
+    radialSpread: 0.06, layerHeight: 1, ringGap: 0.008, angleOffset: 0.4, centerScale: 0,
   },
 };
 

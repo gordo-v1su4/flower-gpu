@@ -246,6 +246,11 @@ export function createFlower(settings: FlowerSettings): FlowerView {
     const lift = sin(along.mul(pi)).mul(arc).mul(grown).mul(0.28).mul(curlBoost);
     next.z.addAssign(lift);
     next.y.subAssign(abs(lift).mul(along).mul(0.28));
+    const chrysanthemum = clamp(float(1).sub(abs(kind.sub(3))), 0, 1);
+    const hookWeight = pow(smoothstep(0.64, 1, along), 2.2);
+    const tipHook = tipCurl.mul(hookWeight).mul(grown).mul(0.38).mul(chrysanthemum);
+    next.z.subAssign(tipHook);
+    next.y.subAssign(tipHook.mul(0.28));
 
     const targetRoot = mix(rootInner, rootOuter, pow(t, rootPower));
     const rootCurl = mix(budRoot.mul(0.18), targetRoot, bloom);
