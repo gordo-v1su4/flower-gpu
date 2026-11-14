@@ -6,6 +6,34 @@ import { attachments } from "../src/surface";
 import { createSettings, assignPreset } from "../src/settings";
 import { PRESETS } from "../src/presets";
 
+test('rose width changes keep petal roots and height fixed',()=>{
+  const s=createSettings();assignPreset(s,PRESETS.find(p=>p.name==='CopperRose')!);
+  const wider={...s,width:s.width*1.3};
+  for(const a of attachments(s)) {
+    expect(evaluateSpecimenSurface(wider,a,0.5,0,1)).toEqual(evaluateSpecimenSurface(s,a,0.5,0,1));
+    for(const v of [0.3,0.65,0.9,1])
+      expect(evaluateSpecimenSurface(wider,a,0.5,v,1)[1]).toBeCloseTo(evaluateSpecimenSurface(s,a,0.5,v,1)[1],10);
+  }
+});
+
+test('rose nested surfaces respond to independent curve, height and proportion controls',()=>{
+  const s=createSettings();assignPreset(s,PRESETS.find(p=>p.name==='CopperRose')!);
+  const baseline=attachments(s);
+  for(const key of ['curveBase','outerTip','heightCenter','indexLengthMin','indexWidthMin','radialSpan'] as const){
+    const edited={...s,[key]:s[key]+0.2};
+    const changed=attachments(edited);
+    let displacement=0;
+    for(let i=0;i<baseline.length;i++){
+      const a=baseline[i]!,b=changed[i]!;
+      const before=evaluateSpecimenSurface(s,a,0.3,0.85,1);
+      const after=evaluateSpecimenSurface(edited,b,0.3,0.85,1);
+      displacement+=Math.hypot(...before.map((x,k)=>x-after[k]!));
+      expect(after.every(Number.isFinite)).toBe(true);
+    }
+    expect(displacement).toBeGreaterThan(0.01);
+  }
+});
+
 test('all peony layers preserve one petal template under root-pivot scaling and rotation',()=>{
   const s=createSettings();assignPreset(s,PRESETS.find(p=>p.name==='SoftPeony')!);
   const definition=SURFACES.SoftPeony!,roots=definition.layout(s);

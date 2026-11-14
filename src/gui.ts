@@ -41,7 +41,7 @@ export function createPanel(
   const controllers: Controller[] = [];
   const curveEditors: ReturnType<typeof createCurveEditor>[] = [];
   const presetNames = PRESETS.map((preset) => preset.name);
-  const selection = { preset: presetNames[0] ?? "VelvetDahlia" };
+  const selection = { preset: settings.name };
   const presetRows: Choice[] = [];
   const backdropRows: Choice[] = [];
   const motionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-motion]"));
@@ -240,6 +240,17 @@ export function createPanel(
   photo.add(photoSettings,"focusOffset",-2,2,0.01).name("Focus offset");
   photo.add(photoSettings,"focusRange",0.2,3,0.01).name("Focus range");
   photo.add(photoSettings,"bokeh",0,2,0.05).name("Lens blur");
+  photo.add(photoSettings,"contactShading").name("Contact shading");
+  photo.add(photoSettings,"contactStrength",0,0.8,0.01).name("Contact strength");
+  photo.add(photoSettings,"contactRadius",0.03,0.4,0.01).name("Contact radius");
+  const lighting=photo.addFolder("Lighting");
+  lighting.add(photoSettings,"lighting",['Soft studio','Backlit','Daylight']).name("Light setup");
+  lighting.add(photoSettings,"keyStrength",0,2,0.01).name("Key light");
+  lighting.add(photoSettings,"rimStrength",0,2,0.01).name("Back light");
+  lighting.add(photoSettings,"fillStrength",0,2,0.01).name("Soft fill");
+  lighting.add(photoSettings,"environmentStrength",0,2,0.01).name("Environment");
+  lighting.add(photoSettings,"lightAngle",-180,180,1).name("Light angle");
+  lighting.add(photoSettings,"lightElevation",5,85,1).name("Light height");
   const views = stage.addFolder("Inspection views");
   for (const [label, view] of [["Front", "front"], ["Side", "right"], ["Top", "top"], ["Below", "underneath"], ["Three quarter", "threeQuarter"], ["Free orbit", "home"]] as const) {
     views.add({view() { settings.motionMode = "off"; flower.syncUniforms(); refresh(); window.snapFlowerView(view); }}, "view").name(label);
@@ -370,6 +381,7 @@ export function createPanel(
   const surface = materialFolder.addFolder("Surface");
   number(surface, "materialRoughness", 0, 1, 0.01, "Roughness", "material");
   number(surface, "materialTransmission", 0, 1, 0.01, "Translucency", "material");
+  number(surface, "materialSpecular", 0, 1, 0.01, "Specular", "material");
 
   const debug = gui.addFolder("Debug");
   track(debug.add(settings, "wireframe").name("Wireframe"), "uniform").onChange((enabled: boolean) => {

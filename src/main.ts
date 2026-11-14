@@ -16,7 +16,8 @@ import {
 import type { MotionMode } from "./settings";
 import { createSpecimens } from "./specimens";
 import { createPanel } from "./gui";
-import { createSettings } from "./settings";
+import { assignPreset, createSettings } from "./settings";
+import { PRESETS } from "./presets";
 import { createPhotography, photoSettings } from "./photography";
 
 const canvas = document.querySelector("#view");
@@ -27,6 +28,10 @@ if (!(canvas instanceof HTMLCanvasElement) || !(status instanceof HTMLParagraphE
 const pageStatus = status;
 
 const settings = createSettings();
+try {
+  const previous=PRESETS.find(p=>p.name===sessionStorage.getItem('flora-specimen'));
+  if(previous)assignPreset(settings,previous);
+} catch { /* Storage can be unavailable in embedded/private browser contexts. */ }
 const renderer = new WebGPURenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -65,8 +70,8 @@ window.addEventListener("flower-reset-view", () => {
 });
 window.addEventListener('flower-photograph',()=>{
   settings.motionMode='off';
-  camera.position.set(2.2,2.1,5.2);
-  camera.fov=35;camera.updateProjectionMatrix();
+  camera.position.set(2.5,3.6,6.6);
+  camera.fov=38;camera.updateProjectionMatrix();
   controls.target.set(0,0.65,0);
   studyView=null;
 });
@@ -177,7 +182,10 @@ const warm = new DirectionalLight(0xffe6ce, 1.5);
 warm.position.set(2, 3, -5);
 scene.add(warm);
 
-const panel = createPanel(settings, flower, setBackdrop, specimens.select);
+const panel = createPanel(settings, flower, setBackdrop, name=>{
+  specimens.select(name);
+  try {sessionStorage.setItem('flora-specimen',name);} catch { /* Optional reload convenience. */ }
+});
 const photography = createPhotography(renderer,scene,camera);
 
 let motionTime = 0;
@@ -221,8 +229,27 @@ function frame(now: number): void {
     panel.tickPreset(now);
     applyMotion(settings.motionMode, dt);
     controls.update();
-    ambient.intensity=photoSettings.enabled?0.35:0.65;
-    scene.environmentIntensity=photoSettings.enabled?0.35:0.5;
+    if(photoSettings.enabled) {
+      const backlit=photoSettings.lighting==='Backlit',daylight=photoSettings.lighting==='Daylight';
+      ambient.intensity=(backlit?0.18:0.35)*photoSettings.fillStrength;
+      scene.environmentIntensity=(daylight?0.65:backlit?0.2:0.4)*photoSettings.environmentStrength;
+      key.intensity=(backlit?0.8:daylight?2.8:2.2)*photoSettings.keyStrength;
+      warm.intensity=(backlit?3.2:1.5)*photoSettings.rimStrength;
+      key.color.set(daylight?0xf1f6ff:0xfff5ec);
+      warm.color.set(daylight?0xe7efff:0xffe6ce);
+      const az=photoSettings.lightAngle*Math.PI/180,el=photoSettings.lightElevation*Math.PI/180;
+      key.position.set(Math.sin(az)*Math.cos(el)*6,Math.sin(el)*6,Math.cos(az)*Math.cos(el)*6);
+      warm.position.set(-Math.sin(az)*4,3,-Math.cos(az)*5);
+      if(backlit){
+        const viewingCamera=studyView===null?camera:ortho;
+        warm.position.set(-viewingCamera.position.x*0.8,0.65-(viewingCamera.position.y-0.65)*0.8,-viewingCamera.position.z*0.8);
+      }
+    } else {
+      ambient.intensity=0.65;scene.environmentIntensity=0.5;
+      key.intensity=2.2;warm.intensity=1.5;
+      key.color.set(0xfff5ec);warm.color.set(0xffe6ce);
+      key.position.set(3,5,4);warm.position.set(2,3,-5);
+    }
     if (studyView === null) {
       photography.render();
     } else {

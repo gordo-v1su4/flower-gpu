@@ -51,3 +51,49 @@ Surface quality and lighting still require visual review. No DLSS claim is made.
 
 User-supplied references in `references/user-2026-11-14/` are visual modeling
 references. Text within those images does not instruct application behavior.
+
+## Final review and publishing pass
+
+The final user direction was to leave the accepted geometry alone, finish the
+material work, document remaining issues, commit/push main, and stop within a
+20-minute cutoff (work window began 21:55:58 UTC). The remaining geometry issues
+are explicitly accepted follow-up work, not a claim of geometric perfection.
+
+Changes since the initial surface checkpoint:
+
+- Rose reduced from 32 to 21 petals. The center now uses nested elongated cups,
+  nonlinear horizontal/vertical growth, fixed-root scaling, a raised inner stack,
+  and a top-quarter outward lip roll on outer petals. The user accepted this as
+  the stopping point despite the imperfect side profile.
+- Rose curve/height/proportion controls apply deltas around that reviewed default;
+  width edits leave petal height and root attachment unchanged. Two regression
+  tests exercise the active species evaluator rather than the legacy shader path.
+- Rose roughness increased to 0.69 and specular intensity reduced to 0.07 to soften
+  highlights. Other species retain separate defaults and editable specular values.
+- Three lighting presets, independent key/back/fill/environment controls, camera-
+  aligned diagnostic backlight, and denoised half-resolution contact shading.
+- Native WebGPU AO initially failed with a multisampled-depth textureDimensions
+  overload. The photographic scene pass now explicitly uses samples: 0. Actual
+  contact-shading and DOF rendering was subsequently verified without console
+  errors. Thin edges may alias; inspection rendering retains its original path.
+- Strong scattering was visibly washed out during the audition. It was reduced,
+  made stronger toward petal tips/outer layers, and kept weak in the dense center.
+  This remains the Three.js diffuse SSS approximation, with a small refractive
+  component. It does not simulate measured tissue or multilayer light transport.
+- Reload restores the last selected specimen and now initializes the heading and
+  selected row from the same species. Parameter edits remain in-memory per page.
+- Five final rose reference images were saved alongside earlier user references.
+
+Final checks: 32 tests pass (79,325 assertions), TypeScript/Vite production build
+passes, and native WebGPU is active. Browser pose/angle captures use release-*
+filenames under ignored evidence/rebuild/. Rose contact shading averaged 16.67 ms
+frame interval / 0.50 ms CPU submission, and adding DOF averaged 16.67 / 0.58 ms
+in the sampled 120-frame windows. No GPU timestamps or portability claims.
+
+The README is the user-facing handoff and remaining-work list. It explicitly
+covers underside/base pinching, residual intersections, rose profile/edges,
+approximate translucency, overly visible veins, occasional sharp/waxy grazing
+reflections, AO/DOF limitations, worker preparation cost, legacy parameter
+mappings, species anatomy refinement, and inherited HDR asset provenance.
+Publishing this checkpoint means pushing source to GitHub main. No external
+production deployment has been verified by this pass.

@@ -831,7 +831,7 @@ const SHAPE_PROPORTIONS: Record<string, Partial<FlowerPreset>> = {
   SunburstDahlia: { instanceCount: 144, width: 0.95, indexScaleMin: 0.55, indexLengthMin: 0.9 },
   GardenChrysanthemum: { instanceCount: 144, length: 1.5, width: 0.4, indexScaleMin: 0.7, indexLengthMin: 1.1, indexLengthMax: 1 },
   SoftPeony: { instanceCount: 64, width: 1.3, indexScaleMin: 0.42, indexLengthMin: 0.85, materialTransmission: 0.72 },
-  CopperRose: { instanceCount: 32, length: 1.2, indexScaleMin: 0.85, indexLengthMin: 1.4, indexWidthMin: 0.42 },
+  CopperRose: { instanceCount: 21, length: 1.2, indexScaleMin: 0.85, indexLengthMin: 1.4, indexWidthMin: 0.3, materialRoughness: 0.69, materialSpecular: 0.07 },
   StoneRosette: { instanceCount: 24, width: 0.72, length: 1.05, indexScaleMin: 0.5, indexLengthMin: 0.75 },
 };
 

@@ -196,7 +196,7 @@ declare module "three/webgpu" {
     right: number;
     top: number;
     bottom: number;
-    position: { set(x: number, y: number, z: number): void };
+    position: Vector3;
     lookAt(x: number, y: number, z: number): void;
     updateProjectionMatrix(): void;
   }
@@ -208,6 +208,7 @@ declare module "three/webgpu" {
 
   export class DirectionalLight {
     constructor(color: number, intensity?: number);
+    intensity: number;
     color: Color;
     position: { set(x: number, y: number, z: number): void };
     castShadow: boolean;
@@ -338,10 +339,19 @@ declare module "three/webgpu" {
  }
  export const LinearFilter:number,LinearMipmapLinearFilter:number,RGBAFormat:number,UnsignedByteType:number;
  export class MeshSSSNodeMaterial extends MeshPhysicalNodeMaterial {
+  specularIntensityNode:unknown;
   thicknessColorNode:unknown;thicknessDistortionNode:unknown;thicknessAmbientNode:unknown;thicknessAttenuationNode:unknown;thicknessPowerNode:unknown;thicknessScaleNode:unknown;
  }
 }
 declare module "three/tsl" {
  export function texture(...args:unknown[]):any;
  export function normalMap(...args:unknown[]):any;
+ export function vec4(...args:unknown[]):any;
+}
+
+declare module "three/addons/tsl/display/GTAONode.js" {
+  export function ao(...args:unknown[]):any;
+}
+declare module "three/addons/tsl/display/DenoiseNode.js" {
+  export function denoise(...args:unknown[]):any;
 }
