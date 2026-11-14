@@ -9,7 +9,7 @@ import {
   Object3D,
   SphereGeometry,
 } from "three/webgpu";
-import { abs, float, mix, smoothstep, uniform, uv } from "three/tsl";
+import { abs, float, mix, sin, smoothstep, uniform, uv } from "three/tsl";
 import { architectureFor } from "./architecture";
 import { createPassionAnatomy } from "./passionflower";
 import { createPetalGeometry } from "./petalMesh";
@@ -46,13 +46,13 @@ function createPeonyStamens(): Group {
   for (let index = 0; index < count; index += 1) {
     const angle = index * 2.399963229728653;
     const radius = 0.035 + 0.22 * Math.sqrt((index + 0.5) / count);
-    const height = 0.68 + (1 - radius / 0.28) * 0.14 + Math.sin(index * 7.31) * 0.018;
+    const height = 0.16 + (1 - radius / 0.28) * 0.1 + Math.sin(index * 7.31) * 0.018;
     dummy.position.set(Math.sin(angle) * radius, 0.16 + height * 0.5, Math.cos(angle) * radius);
     dummy.rotation.set(Math.cos(angle) * 0.13, angle, -Math.sin(angle) * 0.13);
     dummy.scale.set(1, height / 0.2, 1);
     dummy.updateMatrix();
     filaments.setMatrixAt(index, dummy.matrix);
-    dummy.position.y = 0.18 + height;
+    dummy.position.y = 0.16 + height;
     dummy.scale.set(0.8, 1.35, 0.8);
     dummy.updateMatrix();
     anthers.setMatrixAt(index, dummy.matrix);
@@ -70,6 +70,11 @@ export function createAnatomy(settings: FlowerSettings): FlowerAnatomy {
   const stemMaterial = solid("#274f3b", 0.82);
   const leafMaterial = solid("#356a48", 0.72);
   leafMaterial.side = DoubleSide;
+  const leafUv=uv(),leafAcross=abs(leafUv.x.sub(0.5));
+  const midrib=float(1).sub(smoothstep(0.006,0.025,leafAcross));
+  const branches=float(1).sub(smoothstep(0.03,0.14,abs(sin(leafUv.y.mul(46).sub(leafAcross.mul(22))))));
+  const veins=midrib.mul(0.65).add(branches.mul(0.2));
+  leafMaterial.colorNode=mix(uniform(new Color("#244b31")),uniform(new Color("#6b8850")),veins);
   const centerMaterial = solid(settings.materialColorBottom, 0.78);
   const filamentMaterial = solid("#f3d9b0", 0.56);
   const antherMaterial = solid("#b86528", 0.7);

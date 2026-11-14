@@ -54,9 +54,9 @@ function coronaRing(
     const angle = offset + index / count * Math.PI * 2;
     const variation = Math.sin(index * 17.17) * 0.5 + 0.5;
     const attachment = radius * (0.25 + 0.75 * open);
-    position.set(Math.sin(angle) * attachment, 0.09, Math.cos(angle) * attachment);
+    position.set(Math.sin(angle) * attachment, 0.2, Math.cos(angle) * attachment);
     quaternion.setFromEuler(euler.set(-(1 - open) * 1.45, angle, 0, "YXZ"));
-    scale.set(1, 0.85 + variation * 0.3, 0.88 + variation * 0.2);
+    scale.set(1, (0.85 + variation * 0.3) * (0.4 + open * 0.6), (0.88 + variation * 0.2) * (0.32 + open * 0.68));
     matrix.compose(position, quaternion, scale);
     mesh.setMatrixAt(index, matrix);
   }

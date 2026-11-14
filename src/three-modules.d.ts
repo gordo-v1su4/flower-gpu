@@ -44,6 +44,8 @@ declare module "three/webgpu" {
   }
 
   export class BufferGeometry {
+    morphAttributes: { position?: Float32BufferAttribute[]; normal?: Float32BufferAttribute[] };
+    getAttribute(name: string): Float32BufferAttribute;
     setAttribute(name: string, attribute: Float32BufferAttribute | InterleavedBufferAttribute): this;
     setIndex(index: number[]): this;
     computeVertexNormals(): void;
@@ -82,7 +84,7 @@ declare module "three/webgpu" {
   }
 
   export class Float32BufferAttribute {
-    constructor(array: number[], itemSize: number);
+    constructor(array: number[] | Float32Array, itemSize: number);
   }
   export class InstancedBufferAttribute extends Float32BufferAttribute {
     constructor(array: Float32Array, itemSize: number);
@@ -116,6 +118,11 @@ declare module "three/webgpu" {
   }
 
   export class Mesh extends Group {
+    castShadow: boolean;
+    receiveShadow: boolean;
+    frustumCulled: boolean;
+    morphTargetInfluences?: number[];
+    updateMorphTargets(): void;
     constructor(geometry: BufferGeometry, material: MeshPhysicalNodeMaterial);
     geometry: BufferGeometry;
     material: MeshPhysicalNodeMaterial;
@@ -128,6 +135,7 @@ declare module "three/webgpu" {
     color: Color;
     roughness: number;
     sheen: number;
+    metalness: number;
     positionNode: unknown;
     normalNode: unknown;
     colorNode: unknown;
@@ -154,6 +162,7 @@ declare module "three/webgpu" {
   }
 
   export class InstancedMesh {
+    dispose(): void;
     constructor(geometry: BufferGeometry, material: MeshPhysicalNodeMaterial, count: number);
     geometry: BufferGeometry;
     count: number;
@@ -177,7 +186,7 @@ declare module "three/webgpu" {
     constructor(fov: number, aspect: number, near: number, far: number);
     aspect: number;
     fov: number;
-    position: { set(x: number, y: number, z: number): void };
+    position: Vector3;
     updateProjectionMatrix(): void;
   }
 
@@ -193,6 +202,7 @@ declare module "three/webgpu" {
   }
 
   export class HemisphereLight {
+    intensity: number;
     constructor(sky: number, ground: number, intensity?: number);
   }
 
@@ -212,11 +222,14 @@ declare module "three/webgpu" {
         bottom: number;
       };
       bias: number;
+      radius: number;
       normalBias: number;
     };
   }
 
   export class WebGPURenderer {
+    shadowMap: { enabled: boolean };
+    backend: { isWebGPUBackend: boolean };
     constructor(parameters?: { canvas?: HTMLCanvasElement; antialias?: boolean });
     toneMapping: number;
     toneMappingExposure: number;
@@ -304,4 +317,31 @@ declare module "three/addons/controls/OrbitControls.js" {
     target: { set(x: number, y: number, z: number): void };
     update(): void;
   }
+}
+declare module "three/addons/tsl/display/DepthOfFieldNode.js" {
+  export function dof(...args: unknown[]): unknown;
+}
+declare module "three/webgpu" {
+  export class RenderPipeline {
+    constructor(renderer: WebGPURenderer);
+    outputNode: unknown;
+    render(): void;
+  }
+}
+declare module "three/tsl" {
+  export function pass(...args: unknown[]): any;
+}
+declare module "three/webgpu" {
+ export class DataTexture {
+  constructor(data:Uint8Array,width:number,height:number,format:number,type:number);
+  magFilter:number;minFilter:number;generateMipmaps:boolean;needsUpdate:boolean;dispose():void;
+ }
+ export const LinearFilter:number,LinearMipmapLinearFilter:number,RGBAFormat:number,UnsignedByteType:number;
+ export class MeshSSSNodeMaterial extends MeshPhysicalNodeMaterial {
+  thicknessColorNode:unknown;thicknessDistortionNode:unknown;thicknessAmbientNode:unknown;thicknessAttenuationNode:unknown;thicknessPowerNode:unknown;thicknessScaleNode:unknown;
+ }
+}
+declare module "three/tsl" {
+ export function texture(...args:unknown[]):any;
+ export function normalMap(...args:unknown[]):any;
 }

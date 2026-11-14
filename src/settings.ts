@@ -8,6 +8,11 @@ export type FlowerSettings = FlowerPreset & ShapeSettings & {
   widthSegments: number;
   materialSparkleIntensity: number;
   materialHueShift: number;
+  materialRadialInner: number;
+  materialRadialOuter: number;
+  materialRadialPower: number;
+  materialRadialStrength: number;
+  materialRadialFloor: number;
   wireframe: boolean;
   motionMode: MotionMode;
   petalRandomness: number;
@@ -31,10 +36,15 @@ export function createSettings(): FlowerSettings {
   return {
     ...preset,
     ...shapeFor(preset.name),
-    segments: 40,
-    widthSegments: 18,
+    segments: 64,
+    widthSegments: 32,
     materialSparkleIntensity: 0.18,
     materialHueShift: 0,
+    materialRadialInner: 1.08,
+    materialRadialOuter: 0.72,
+    materialRadialPower: 1,
+    materialRadialStrength: 0.6,
+    materialRadialFloor: 0.35,
     wireframe: false,
     motionMode: "sway",
     petalRandomness: 0.07,
@@ -53,4 +63,5 @@ export function createSettings(): FlowerSettings {
 
 export function assignPreset(settings: FlowerSettings, preset: FlowerPreset): void {
   Object.assign(settings, preset, shapeFor(preset.name));
+  settings.petalRandomness=['GardenChrysanthemum','SoftPeony'].includes(preset.name)?0.18:preset.name.includes('Dahlia')?0.14:0.07;
 }

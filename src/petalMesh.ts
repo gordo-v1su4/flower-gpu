@@ -2,13 +2,16 @@ import { BufferGeometry, Float32BufferAttribute, MathUtils } from "three/webgpu"
 import type { PetalProfile } from "./presets";
 import type { FlowerSettings } from "./settings";
 
+/** Cosine spacing concentrates vertices around both margins and the rounded tip. */
+export const edgeSample = (t: number): number => (1 - Math.cos(Math.PI * t)) * 0.5;
+
 function roundedCap(along: number, start: number): number {
   if (along <= start) return 1;
   const t = (along - start) / (1 - start);
   return Math.sqrt(Math.max(0, 1 - t * t));
 }
 
-function outline(profile: PetalProfile, along: number): number {
+export function outline(profile: PetalProfile, along: number): number {
   switch (profile) {
     case "pointed": {
       const bell = Math.sin(Math.pow(along, 0.7) * Math.PI);
@@ -22,7 +25,8 @@ function outline(profile: PetalProfile, along: number): number {
     }
     case "rose": {
       const body = Math.sin(Math.min(1, along / 0.86) * Math.PI * 0.5);
-      return Math.pow(body, 0.62) * roundedCap(along, 0.6);
+      // Broad distal rim: a rose petal is not a leaf converging to one point.
+      return Math.pow(body, 0.62) * (1 - 0.16 * MathUtils.smoothstep(along, 0.65, 1));
     }
     case "ruffled": {
       const body = Math.sin(Math.pow(along, 0.55) * Math.PI * 0.5);
@@ -51,7 +55,7 @@ function outline(profile: PetalProfile, along: number): number {
   }
 }
 
-function ruffle(profile: PetalProfile, along: number, signed: number): number {
+export function ruffle(profile: PetalProfile, along: number, signed: number): number {
   const margin = signed * signed;
   switch (profile) {
     case "pointed":
@@ -84,7 +88,7 @@ export function createPetalGeometry(settings: FlowerSettings): BufferGeometry {
   const profile = settings.petalProfile;
 
   for (let row = 0; row < rows; row += 1) {
-    const along = row / (rows - 1);
+    const along = edgeSample(row / (rows - 1));
     const y = along * settings.length;
     const neck = MathUtils.smoothstep(along, 0.0, 0.36);
     const gathered = profile === "rose"
@@ -99,12 +103,14 @@ export function createPetalGeometry(settings: FlowerSettings): BufferGeometry {
     const root = MathUtils.smoothstep(along, 0.04, Math.max(settings.rootLength, 0.08));
 
     for (let column = 0; column < columns; column += 1) {
-      const u = column / (columns - 1);
+      const u = edgeSample(column / (columns - 1));
       const signed = u * 2 - 1;
       const x = signed * halfWidth * ruffle(profile, along, signed);
       const roundness = Math.sqrt(Math.max(0, 1 - signed * signed));
       const z = roundness * settings.bloomRootRoundness * root * halfWidth;
-      positions.push(x, y, z);
+      const roseRim = profile === "rose" ? MathUtils.smoothstep(along, 0.55, 1)
+        * (0.2 * Math.pow(Math.abs(signed), 4) + 0.04 * Math.exp(-signed * signed * 40)) : 0;
+      positions.push(x, y - roseRim * settings.length, z);
       uvs.push(u, along);
     }
   }

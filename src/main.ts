@@ -17,6 +17,7 @@ import type { MotionMode } from "./settings";
 import { createSpecimens } from "./specimens";
 import { createPanel } from "./gui";
 import { createSettings } from "./settings";
+import { createPhotography, photoSettings } from "./photography";
 
 const canvas = document.querySelector("#view");
 const status = document.querySelector("#status");
@@ -31,6 +32,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true;
 
 const scene = new Scene();
 const backdrop = new Color("#0d110f");
@@ -59,13 +61,20 @@ if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) settings.moti
 window.addEventListener("flower-reset-view", () => {
   camera.position.set(2.0, 3.0, 6.5);
   controls.target.set(0, -0.35, 0);
-  studyView = null;
+  studyView = "top";
+});
+window.addEventListener('flower-photograph',()=>{
+  settings.motionMode='off';
+  camera.position.set(2.2,2.1,5.2);
+  camera.fov=35;camera.updateProjectionMatrix();
+  controls.target.set(0,0.65,0);
+  studyView=null;
 });
 
 type StudyView = "front" | "left" | "right" | "top" | "threeQuarter" | "underneath";
 type StudyCommand = StudyView | "home";
 
-let studyView: StudyView | null = null;
+let studyView: StudyView | null = "top";
 
 function fitOrtho(): void {
   const aspect = window.innerWidth / window.innerHeight;
@@ -152,15 +161,24 @@ const flowerGroup = new Group();
 flowerGroup.add(flower.mesh);
 scene.add(flowerGroup);
 
-scene.add(new HemisphereLight(0xf4f6ee, 0x59645c, 1.8));
+const ambient=new HemisphereLight(0xf4f6ee,0x59645c,0.65);
+scene.add(ambient);
 const key = new DirectionalLight(0xfff5ec, 2.2);
 key.position.set(3, 5, 4);
 scene.add(key);
-const warm = new DirectionalLight(0xffe6ce, 0.8);
+key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-3;key.shadow.camera.right=3;
+key.shadow.camera.top=3;key.shadow.camera.bottom=-3;
+key.shadow.bias=-0.0003;
+key.shadow.normalBias=0.012;
+key.shadow.radius=3;
+const warm = new DirectionalLight(0xffe6ce, 1.5);
 warm.position.set(2, 3, -5);
 scene.add(warm);
 
 const panel = createPanel(settings, flower, setBackdrop, specimens.select);
+const photography = createPhotography(renderer,scene,camera);
 
 let motionTime = 0;
 let last = performance.now();
@@ -185,6 +203,7 @@ function applyMotion(mode: MotionMode, dt: number): void {
 }
 
 let presented = false;
+let frameSamples=0,frameTotal=0,submitTotal=0;
 const loading = document.querySelector<HTMLElement>("#loading");
 
 function showError(error: unknown): void {
@@ -195,16 +214,25 @@ function showError(error: unknown): void {
 
 function frame(now: number): void {
   try {
+    const submitStart=performance.now();
+    const interval=now-last;
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
     panel.tickPreset(now);
     applyMotion(settings.motionMode, dt);
     controls.update();
+    ambient.intensity=photoSettings.enabled?0.35:0.65;
+    scene.environmentIntensity=photoSettings.enabled?0.35:0.5;
     if (studyView === null) {
-      renderer.render(scene, camera);
+      photography.render();
     } else {
       placeStudyView(studyView);
       renderer.render(scene, ortho);
+    }
+    frameSamples++; frameTotal+=interval; submitTotal+=performance.now()-submitStart;
+    if(frameSamples===120) {
+      document.body.dataset.performance=JSON.stringify({frameMs:+(frameTotal/frameSamples).toFixed(2),submitMs:+(submitTotal/frameSamples).toFixed(2),dof:photoSettings.enabled&&photoSettings.depthOfField&&studyView===null});
+      frameSamples=0;frameTotal=0;submitTotal=0;
     }
     if (!presented) {
       presented = true;
@@ -225,6 +253,7 @@ window.addEventListener("resize", () => {
 
 try {
   await renderer.init();
+  document.body.dataset.backend = (renderer.backend.isWebGPUBackend ? "WebGPU" : "WebGL fallback");
   const pmrem = new PMREMGenerator(renderer);
   try {
     const hdr = await new RGBELoader().loadAsync("/environments/studio.hdr");

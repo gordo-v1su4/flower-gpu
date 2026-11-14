@@ -34,6 +34,7 @@ import { writeInstances } from "./place";
 import { INNER_KEYS, OUTER_KEYS } from "./shape";
 import { PRESETS } from "./presets";
 import { bloomState } from "./bloom";
+import { photographic } from "./petalMaterial";
 import type { PetalProfile } from "./presets";
 import type { FlowerSettings } from "./settings";
 
@@ -103,6 +104,7 @@ function numberUniform(value: number): NumberUniform {
 }
 
 export type FlowerView = {
+  dispose?: () => void;
   mesh: Group;
   syncUniforms: () => void;
   updateMaterial: () => void;
@@ -407,11 +409,11 @@ export function createFlower(settings: FlowerSettings): FlowerView {
   material.positionNode = origin;
   material.normalNode = normalFlat;
   material.colorNode = shaded;
-  material.emissiveNode = emissiveNode;
+  material.emissiveNode = emissiveNode.mul(mix(1,0.06,photographic));
   material.roughnessNode = clamp(roughness.add(fiber.mul(0.5).add(0.5).mul(0.035)), 0.08, 1);
-  material.metalnessNode = metalness;
+  material.metalnessNode = metalness.mul(float(1).sub(photographic));
   material.iorNode = ior;
-  material.transmissionNode = transmission;
+  material.transmissionNode = mix(transmission,0.07,photographic);
   material.thicknessNode = thickness.mul(thickMask);
   material.attenuationDistance = settings.materialAttenuationDistance;
   material.attenuationColor = attenuationColor;

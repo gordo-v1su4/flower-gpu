@@ -41,14 +41,14 @@ export function shapeFor(name: string): ShapeSettings {
       inner = [0.05, 1.3, 1.4, -3.0]; outer = [0.6, 1.6, 3.2, 4.2];
       heights = [0.2, 0.16, 0.06, 0]; span = 0.3; cup = 0.4; break;
     case "dahlia":
-      inner = [0.12, 0.32, 0.6, 0.95]; outer = [0.65, 1.2, 1.8, 2.2];
-      heights = [0.85, 0.65, 0.15, 0.02]; span = 0.24; cup = 0.65; break;
+      inner = [0.2, 0.55, 1, 0.3]; outer = [1.5, 1.7, 2.3, 2.85];
+      heights = [0.96, 0.88, 0.5, 0.27]; span = 0.32; cup = 0.55; break;
     case "peony":
-      inner = [0.15, 0.15, 0.3, 0.7]; outer = [0.25, 0.35, 0.65, 1.7];
-      heights = [0.17, 0.13, 0.06, 0.015]; span = 0.38; cup = 0.45; break;
+      inner = [0.45, 0.7, -0.3, -1.2]; outer = [1.5, 1.5, 0.15, -0.55];
+      heights = [0.78, 0.6, 0.22, 0.02]; span = 0.25; cup = 0.6; break;
     case "rosette":
-      inner = [0.08, 0.2, 0.35, 0.65]; outer = [0.6, 1, 1.5, 1.1];
-      heights = [0.68, 0.5, 0.16, 0.02]; span = 0.16; cup = 0.3; break;
+      inner = [0.55, 0.7, 1, 0.95]; outer = [1.15, 1.4, 1.65, 1.5];
+      heights = [0.3, 0.24, 0.12, 0.03]; span = 0.18; cup = 0.25; break;
     case "lily":
       inner = outer = [0.55, 0.85, 1.65, 2.9];
       heights = [0.015, 0.015, 0.015, 0.015]; span = 0.01; cup = 0.22; break;

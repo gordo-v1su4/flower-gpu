@@ -1,10 +1,11 @@
-import { Group, Mesh } from "three/webgpu";
+import { Group, Mesh, InstancedMesh } from "three/webgpu";
 import { PRESETS } from "./presets";
 import { assignPreset, createSettings, type FlowerSettings } from "./settings";
-import { createFlower, type FlowerView } from "./flowerMaterial";
+import type { FlowerView } from "./flowerMaterial";
+import { createSurfaceFlower } from "./surfaceFlower";
 
 export type SpecimenFactory = (settings: FlowerSettings) => FlowerView;
-export const SPECIES = new Map<string, SpecimenFactory>(PRESETS.map(p => [p.name, createFlower]));
+export const SPECIES = new Map<string, SpecimenFactory>(PRESETS.map(p => [p.name, createSurfaceFlower]));
 
 /** All geometry and its captured settings belong to a single specimen. The GUI is a bridge. */
 export function createSpecimens(bridge: FlowerSettings) {
@@ -13,9 +14,11 @@ export function createSpecimens(bridge: FlowerSettings) {
   let active: FlowerView;
   let owned: FlowerSettings;
   function dispose(view: FlowerView) {
+    view.dispose?.();
     const geometries = new Set<Mesh["geometry"]>();
     const materials = new Set<Mesh["material"]>();
     view.mesh.traverse(object => {
+      if (object instanceof InstancedMesh) object.dispose();
       if (object instanceof Mesh) { geometries.add(object.geometry); materials.add(object.material); }
     });
     for (const geometry of geometries) geometry.dispose();

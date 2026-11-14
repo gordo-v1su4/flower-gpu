@@ -3,6 +3,8 @@ import { PRESETS } from "./presets";
 import { type FlowerSettings, type MotionMode } from "./settings";
 import type { FlowerView } from "./flowerMaterial";
 import { createCurveEditor } from "./curveEditor";
+import { photoSettings } from "./photography";
+import { photographic } from "./petalMaterial";
 
 
 type RefreshKind = "mesh" | "instances" | "material" | "uniform";
@@ -19,7 +21,7 @@ type Choice = {
 };
 
 const DESCRIPTIONS: Record<string, string> = {
-  VelvetDahlia: "Narrow velvet petals unfold through seven staggered, golden-angle whorls.",
+  VelvetDahlia: "Cupped velvet petals peel away from a dense cluster of small folded center petals.",
   SoftPeony: "Broad, cupped pink ruffles surround an open cluster of golden stamens.",
   WildOrchid: "Five sculpted tepals surround a golden-throated lip and a pale central column.",
   GardenChrysanthemum: "Slender, curling petals rise through a tall, densely layered center.",
@@ -191,6 +193,10 @@ export function createPanel(
       const parsed: unknown = JSON.parse(await navigator.clipboard.readText());
       if (!parsed || typeof parsed !== "object") return;
       const record = parsed as Record<string, unknown>;
+      if (typeof record.name === "string" && record.name !== selection.preset) {
+        if (!presetNames.includes(record.name)) return;
+        finishPreset(record.name);
+      }
       for (const key of Object.keys(settings) as (keyof FlowerSettings)[]) {
         const next = record[key];
         if (typeof next === typeof settings[key]) {
@@ -223,6 +229,17 @@ export function createPanel(
   settingsFolder.add({ copySettings }, "copySettings").name("Copy Settings");
   settingsFolder.add({ pasteSettings }, "pasteSettings").name("Paste Settings");
   const stage = gui.addFolder("Stage");
+  const photo = stage.addFolder("Photography");
+  photo.add(photoSettings,"enabled").name("Photographic camera").onChange((enabled:boolean)=>{
+    photographic.value=enabled?1:0;
+    if(enabled) window.dispatchEvent(new CustomEvent('flower-photograph'));
+    else window.snapFlowerView('top');
+  });
+  photo.add(photoSettings,"depthOfField").name("Depth of field").onChange(()=>window.snapFlowerView("home"));
+  photo.add(photoSettings,"exposure",0.4,1.8,0.01).name("Exposure");
+  photo.add(photoSettings,"focusOffset",-2,2,0.01).name("Focus offset");
+  photo.add(photoSettings,"focusRange",0.2,3,0.01).name("Focus range");
+  photo.add(photoSettings,"bokeh",0,2,0.05).name("Lens blur");
   const views = stage.addFolder("Inspection views");
   for (const [label, view] of [["Front", "front"], ["Side", "right"], ["Top", "top"], ["Below", "underneath"], ["Three quarter", "threeQuarter"], ["Free orbit", "home"]] as const) {
     views.add({view() { settings.motionMode = "off"; flower.syncUniforms(); refresh(); window.snapFlowerView(view); }}, "view").name(label);
@@ -257,26 +274,11 @@ export function createPanel(
   number(petal, "tipWidth", 0.1, 1, 0.01, "Tip Width", "mesh");
   number(petal, "rootLength", 0.02, 0.6, 0.01, "Root Length", "mesh");
   number(petal, "bloomRootRoundness", 0, 1.5, 0.01, "Root Roundness", "mesh");
-  const dome = petal.addFolder("Dome");
-  number(dome, "budDome", 0, 0.8, 0.01, "Bud Amount", "uniform");
-  number(dome, "budDomePower", 0.5, 6, 0.01, "Bud Power", "uniform");
-  number(dome, "bloomDome", 0, 0.8, 0.01, "Bloom Amount", "uniform");
-  number(dome, "bloomDomePower", 0.5, 6, 0.01, "Bloom Power", "uniform");
-
   const curvature = gui.addFolder("Curvature");
   const profileEditor = createCurveEditor(settings, "petal", () => flower.syncUniforms());
   curvature.domElement.querySelector(".lil-children")!.append(profileEditor.element);
   curveEditors.push(profileEditor);
   number(curvature, "petalCup", 0, 1.5, 0.01, "Petal Cup", "uniform");
-  const bud = curvature.addFolder("Bud");
-  const bloom = curvature.addFolder("Bloom");
-  for (const key of ["budRoot", "budSpine", "budTip", "budSide"] as const) {
-    number(bud, key, -Math.PI, Math.PI, 0.01, key.replace("bud", "").replace(/([A-Z])/g, " $1").trim(), "uniform");
-  }
-  for (const key of ["bloomRoot", "bloomSpine", "bloomTip", "bloomSide"] as const) {
-    number(bloom, key, -Math.PI, Math.PI, 0.01, key.replace("bloom", "").replace(/([A-Z])/g, " $1").trim(), "uniform");
-  }
-
   const distribution = gui.addFolder("Distribution");
   const heightEditor = createCurveEditor(settings, "height", () => flower.updateInstances());
   distribution.domElement.querySelector(".lil-children")!.append(heightEditor.element);
@@ -359,27 +361,15 @@ export function createPanel(
   colorControl(color, "materialColorBottom", "Bottom");
   colorControl(color, "materialColorTop", "Top");
   colorControl(color, "materialTipColor", "Tip");
-  colorControl(color, "materialBorderColor", "Border");
-  colorControl(color, "materialHighlightColor", "Highlight");
-  number(color, "materialHueShift", -Math.PI, Math.PI, 0.01, "Hue Shift", "material");
-  number(color, "materialColorVariation", 0, 0.4, 0.01, "Variation", "material");
-  number(color, "materialVariationHue", 0, 0.15, 0.001, "Hue Variation", "material");
-  number(color, "materialVariationLightness", 0, 0.3, 0.01, "Lightness Variation", "material");
+  const radial = materialFolder.addFolder("Radial color ramp");
+  number(radial,"materialRadialInner",0.35,1.5,0.01,"Inner brightness","material");
+  number(radial,"materialRadialOuter",0.1,1.5,0.01,"Outer brightness","material");
+  number(radial,"materialRadialPower",0.2,4,0.01,"Ramp curve","material");
+  number(radial,"materialRadialStrength",0,1,0.01,"Ramp amount","material");
+  number(radial,"materialRadialFloor",0.1,1,0.01,"Minimum brightness","material");
   const surface = materialFolder.addFolder("Surface");
   number(surface, "materialRoughness", 0, 1, 0.01, "Roughness", "material");
-  number(surface, "materialMetalness", 0, 1, 0.01, "Metalness", "material");
-  number(surface, "materialSpecular", 0, 1, 0.01, "Specular", "material");
-  number(surface, "materialIOR", 1, 2.5, 0.01, "IOR", "material");
-  number(surface, "materialTransmission", 0, 1, 0.01, "Transmission", "material");
-  number(surface, "materialThickness", 0, 1, 0.01, "Thickness", "material");
-  number(surface, "materialIridescence", 0, 1, 0.01, "Iridescence", "material");
-  const coat = materialFolder.addFolder("Clearcoat");
-  number(coat, "materialClearcoat", 0, 1, 0.01, "Amount", "material");
-  number(coat, "materialClearcoatRoughness", 0, 1, 0.01, "Roughness", "material");
-  const edge = materialFolder.addFolder("Edges");
-  number(edge, "materialBorderIntensity", 0, 2, 0.01, "Border Intensity", "material");
-  number(edge, "materialBorderWidth", 0.1, 1, 0.01, "Border Width", "material");
-  number(edge, "materialBorderGlow", 0, 2, 0.01, "Border Glow", "material");
+  number(surface, "materialTransmission", 0, 1, 0.01, "Translucency", "material");
 
   const debug = gui.addFolder("Debug");
   track(debug.add(settings, "wireframe").name("Wireframe"), "uniform").onChange((enabled: boolean) => {
