@@ -4,23 +4,25 @@ An interactive botanical studio built with Three.js, WebGPU, TSL node materials,
 
 ## Run
 
+Use Bun 1.4.4 (declared in `package.json`). Dependencies are locked in `bun.lock`.
+
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Create and inspect the production build:
 
 ```bash
-npm run build
-npm run preview
+bun run build
+bun run preview
 ```
 
 A current WebGPU-capable browser is recommended. A static flower remains visible while the renderer loads or if GPU initialization fails.
 
 ## Deploy
 
-The included `vercel.json` configures Vercel to build with `npm run build` and publish the static `dist/` directory. Import the GitHub repository into Vercel with those defaults, or run `npx vercel --prod` from a Vercel-authenticated checkout.
+The included `vercel.json` configures Vercel to install with `bun install --frozen-lockfile`, build with `bun run build`, and publish the static `dist/` directory. Import the GitHub repository into Vercel with those defaults, or run `bunx vercel --prod` from a Vercel-authenticated checkout.
 
 ## Controls
 
